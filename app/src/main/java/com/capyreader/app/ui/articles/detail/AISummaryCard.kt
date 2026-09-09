@@ -467,7 +467,7 @@ fun AISummaryCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 6.dp),
-                                horizontalAlignment = Alignment.End,
+                                horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Button(

@@ -246,38 +246,39 @@ class AIAudioService(
         return suspendCancellableCoroutine { continuation ->
             var tts: TextToSpeech? = null
             tts = TextToSpeech(context) { status ->
-                if (status == TextToSpeech.SUCCESS && tts != null) {
+                val engine = tts
+                if (status == TextToSpeech.SUCCESS && engine != null) {
                     try {
-                        tts.language = Locale.getDefault()
+                        engine.language = Locale.getDefault()
                         val utteranceId = "system_tts_${System.currentTimeMillis()}"
 
-                        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                             override fun onStart(utteranceId: String?) {}
 
                             override fun onDone(utteranceId: String?) {
-                                tts?.shutdown()
+                                engine.shutdown()
                                 continuation.resume(outputFile)
                             }
 
                             @Deprecated("Deprecated in Java")
                             override fun onError(utteranceId: String?) {
-                                tts?.shutdown()
+                                engine.shutdown()
                                 continuation.resumeWith(Result.failure(IOException("System TTS error")))
                             }
                         })
 
                         val params = Bundle()
-                        val result = tts.synthesizeToFile(text, params, outputFile, utteranceId)
+                        val result = engine.synthesizeToFile(text, params, outputFile, utteranceId)
                         if (result != TextToSpeech.SUCCESS) {
-                            tts.shutdown()
+                            engine.shutdown()
                             continuation.resumeWith(Result.failure(IOException("Failed to synthesize system audio")))
                         }
                     } catch (e: Exception) {
-                        tts.shutdown()
+                        engine.shutdown()
                         continuation.resumeWith(Result.failure(e))
                     }
                 } else {
-                    tts?.shutdown()
+                    engine?.shutdown()
                     continuation.resumeWith(Result.failure(IOException("System TextToSpeech initialization failed")))
                 }
             }
