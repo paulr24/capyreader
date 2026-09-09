@@ -1,13 +1,16 @@
-name: Build Debug APK
+name: Build and Release APK
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build Free Debug APK
+    name: Build & Release APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -28,8 +31,28 @@ jobs:
       - name: Build Free Debug APK
         run: ./gradlew assembleFreeDebug --no-daemon
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Prepare APK for Release
+        run: |
+          mkdir -p release-apk
+          cp app/build/outputs/apk/free/debug/*.apk release-apk/CapyReader-AI-Summary.apk
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: CapyReader-AI-Summary
-          path: app/build/outputs/apk/free/debug/*.apk
+          tag_name: ai-summary-latest
+          name: "Capy Reader with AI Summarization"
+          body: |
+            ### Capy Reader with Gemini AI Summarization
+            
+            - **Default Model**: `gemini-3.5-flash-lite`
+            - **Features**:
+              - AI article summarization in the reader floating bar
+              - Instant caching (in-memory & disk)
+              - Multi-model & custom model selection
+              - Configurable prompt templates in Settings
+            
+            #### Download:
+            Download `CapyReader-AI-Summary.apk` below directly to your phone and install!
+          files: release-apk/CapyReader-AI-Summary.apk
+          prerelease: false
+          draft: false
