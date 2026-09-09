@@ -199,6 +199,12 @@ fun ScrollableWebView(
 
     var lastScrollYPercent by rememberSaveable(article.id) { mutableFloatStateOf(0f) }
 
+    LaunchedEffect(summaryTrigger) {
+        if (summaryTrigger > 0L) {
+            scrollState.animateScrollTo(0)
+        }
+    }
+
     CornerTapGestureScroll(
         maxArticleHeight = maxHeight,
         scrollState = scrollState,

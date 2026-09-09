@@ -423,4 +423,5 @@
     <string name="ai_summary_generate_button">Summarize Article</string>
     <string name="ai_summary_collapse">Collapse</string>
     <string name="ai_summary_expand">Expand</string>
+    <string name="ai_summary_close">Close summary</string>
 </resources>

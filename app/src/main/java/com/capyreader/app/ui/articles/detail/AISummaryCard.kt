@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -161,20 +162,30 @@ fun AISummaryCard(
         }
     }
 
+    var isVisible by rememberSaveable(article.id) {
+        mutableStateOf(aiOptions.autoSummarize.get())
+    }
+
     LaunchedEffect(article.id) {
         val cached = summaryRepository.get(article.id)
         if (cached != null) {
             summaryText = cached
         } else if (aiOptions.autoSummarize.get()) {
+            isVisible = true
             generateSummary(forceRefresh = false)
         }
     }
 
     LaunchedEffect(summaryTrigger) {
         if (summaryTrigger > 0L) {
+            isVisible = true
             isExpanded = true
             generateSummary(forceRefresh = false)
         }
+    }
+
+    if (!isVisible) {
+        return
     }
 
     ElevatedCard(
@@ -288,6 +299,17 @@ fun AISummaryCard(
                             } else {
                                 stringResource(R.string.ai_summary_expand)
                             },
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // Close / Dismiss button
+                    IconButton(
+                        onClick = { isVisible = false }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = stringResource(R.string.ai_summary_close),
                             modifier = Modifier.size(20.dp)
                         )
                     }
