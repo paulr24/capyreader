@@ -96,6 +96,40 @@ class AISummarizerServiceTest {
         assertTrue(result.isFailure)
     }
 
+    @Test
+    fun summarizeStream_openAiCompatible_streamsChunks() = runTest {
+        val baseUrl = server.url("/v1").toString()
+        val options = appPreferences.aiOptions
+        options.provider.set(AIProvider.OPENAI_COMPATIBLE)
+        options.openAiEndpoint.set(baseUrl)
+        options.openAiApiKey.set("test-key")
+        options.openAiModel.set("test-model")
+
+        val sseBody = """
+            data: {"choices":[{"delta":{"content":"Hello"}}]}
+
+            data: {"choices":[{"delta":{"content":" world!"}}]}
+
+            data: [DONE]
+
+        """.trimIndent()
+
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "text/event-stream")
+                .setBody(sseBody)
+        )
+
+        val article = createArticle(contentHTML = "<p>Article text</p>")
+        val chunks = mutableListOf<String>()
+        service.summarizeStream(article).collect { chunk ->
+            chunks.add(chunk)
+        }
+
+        assertEquals(listOf("Hello", " world!"), chunks)
+    }
+
     private fun createArticle(contentHTML: String): Article {
         return Article(
             id = "test-article-1",

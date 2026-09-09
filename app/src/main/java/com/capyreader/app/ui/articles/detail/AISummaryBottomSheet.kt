@@ -94,17 +94,27 @@ fun AISummaryBottomSheet(
                 }
             }
 
-            val result = aiService.summarize(article)
-            isGenerating = false
-            result.fold(
-                onSuccess = { summary ->
-                    summaryText = summary
-                    summaryRepository.put(article.id, summary)
-                },
-                onFailure = { error ->
-                    errorMessage = error.message.orEmpty().ifBlank { "Unknown error occurred" }
+            summaryText = ""
+            try {
+                aiService.summarizeStream(article).collect { chunk ->
+                    summaryText = (summaryText ?: "") + chunk
                 }
-            )
+                summaryText?.let {
+                    if (it.isNotBlank()) {
+                        summaryRepository.put(article.id, it)
+                    }
+                }
+            } catch (e: Exception) {
+                if (summaryText.isNullOrBlank()) {
+                    errorMessage = e.message.orEmpty().ifBlank { "Unknown error occurred" }
+                } else {
+                    scope.launch {
+                        snackbarHost.showSnackbar(e.message.orEmpty().ifBlank { "Error while streaming summary" })
+                    }
+                }
+            } finally {
+                isGenerating = false
+            }
         }
     }
 
@@ -207,27 +217,7 @@ fun AISummaryBottomSheet(
                         }
                     }
 
-                    isGenerating -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 36.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(36.dp),
-                                strokeWidth = 3.dp
-                            )
-                            Text(
-                                text = stringResource(R.string.ai_summary_loading, modelName),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    errorMessage != null -> {
+                    errorMessage != null && summaryText.isNullOrBlank() -> {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -265,10 +255,17 @@ fun AISummaryBottomSheet(
                         }
                     }
 
-                    summaryText != null -> {
+                    !summaryText.isNullOrBlank() -> {
                         val text = summaryText.orEmpty()
                         val copyToClipboard = buildCopyToClipboard(text)
                         val copiedMessage = stringResource(R.string.ai_summary_copied)
+                        val scrollState = rememberScrollState()
+
+                        LaunchedEffect(text) {
+                            if (isGenerating && !scrollState.isScrollInProgress) {
+                                scrollState.animateScrollTo(scrollState.maxValue)
+                            }
+                        }
 
                         Column(
                             modifier = Modifier.fillMaxWidth()
@@ -276,7 +273,7 @@ fun AISummaryBottomSheet(
                             Column(
                                 modifier = Modifier
                                     .weight(1f, fill = false)
-                                    .verticalScroll(rememberScrollState())
+                                    .verticalScroll(scrollState)
                                     .padding(vertical = 8.dp)
                             ) {
                                 SelectionContainer {
@@ -296,8 +293,29 @@ fun AISummaryBottomSheet(
                                 horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                if (isGenerating) {
+                                    Row(
+                                        modifier = Modifier.weight(1f),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(14.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.ai_summary_loading, modelName),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+
                                 OutlinedButton(
-                                    onClick = { generateSummary(forceRefresh = true) }
+                                    onClick = { generateSummary(forceRefresh = true) },
+                                    enabled = !isGenerating
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.Refresh,
@@ -316,7 +334,8 @@ fun AISummaryBottomSheet(
                                         scope.launch {
                                             snackbarHost.showSnackbar(copiedMessage)
                                         }
-                                    }
+                                    },
+                                    enabled = !isGenerating
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.ContentCopy,
@@ -327,6 +346,26 @@ fun AISummaryBottomSheet(
                                     Text(stringResource(R.string.ai_summary_copy))
                                 }
                             }
+                        }
+                    }
+
+                    isGenerating -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 36.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(36.dp),
+                                strokeWidth = 3.dp
+                            )
+                            Text(
+                                text = stringResource(R.string.ai_summary_loading, modelName),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
