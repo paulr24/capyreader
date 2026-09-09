@@ -152,6 +152,7 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.coil.svg)
     implementation(libs.coil.video)
+    implementation(libs.jsoup)
     implementation(libs.lazycolumnscrollbar)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
