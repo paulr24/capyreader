@@ -22,6 +22,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -29,6 +30,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.security.MessageDigest
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 
 class AIAudioService(
@@ -45,19 +47,31 @@ class AIAudioService(
         }
     }
 
+    private val audioHttpClient: OkHttpClient by lazy {
+        httpClient.newBuilder()
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .callTimeout(180, TimeUnit.SECONDS)
+            .build()
+    }
+
     private var samplePlayer: MediaPlayer? = null
     private val _isSamplePlaying = MutableStateFlow(false)
     val isSamplePlaying: StateFlow<Boolean> = _isSamplePlaying.asStateFlow()
 
-    suspend fun generateAudio(text: String): Result<File> = withContext(Dispatchers.IO) {
+    suspend fun generateAudio(
+        text: String,
+        onProgress: ((current: Int, total: Int) -> Unit)? = null,
+    ): Result<File> = withContext(Dispatchers.IO) {
         try {
             val cleanText = text.trim()
             if (cleanText.isBlank()) {
                 return@withContext Result.failure(IllegalArgumentException("Text is empty"))
             }
 
-            val textToSpeak = if (cleanText.length > 12_000) {
-                val prefix = cleanText.take(12_000)
+            val textToSpeak = if (cleanText.length > 10_000) {
+                val prefix = cleanText.take(10_000)
                 if (prefix.contains('.')) {
                     prefix.substringBeforeLast('.') + "."
                 } else {
@@ -75,7 +89,7 @@ class AIAudioService(
             }
 
             val resultFile = when (provider) {
-                AIAudioProvider.GEMINI -> generateGeminiSpeech(textToSpeak, cachedFile)
+                AIAudioProvider.GEMINI -> generateGeminiSpeech(textToSpeak, cachedFile, onProgress = onProgress)
                 AIAudioProvider.SYSTEM -> generateSystemSpeech(textToSpeak, cachedFile)
                 AIAudioProvider.OPENAI -> generateOpenAISpeech(textToSpeak, File(audioDir, "$cacheKey.mp3"))
             }
@@ -162,7 +176,8 @@ class AIAudioService(
     private fun generateGeminiSpeech(
         text: String,
         outputFile: File,
-        voiceOverride: String? = null
+        voiceOverride: String? = null,
+        onProgress: ((Int, Int) -> Unit)? = null,
     ): File {
         val apiKey = aiOptions.geminiApiKey.get()
         if (apiKey.isBlank()) {
@@ -172,6 +187,32 @@ class AIAudioService(
         val model = aiOptions.geminiAudioModel.get().ifBlank { "gemini-3.1-flash-tts-preview" }
         val voice = voiceOverride ?: aiOptions.geminiVoice.get().ifBlank { "Kore" }
 
+        val chunks = chunkText(text, maxChunkSize = 1500)
+        val pcmOut = ByteArrayOutputStream()
+
+        for ((index, chunk) in chunks.withIndex()) {
+            onProgress?.invoke(index + 1, chunks.size)
+            val chunkBytes = fetchGeminiChunkAudio(chunk, model, voice, apiKey)
+            val pcm = extractPcm(chunkBytes)
+            pcmOut.write(pcm)
+        }
+
+        val allPcm = pcmOut.toByteArray()
+        val header = createWavHeader(pcmDataSize = allPcm.size, sampleRate = 24000)
+        FileOutputStream(outputFile).use { fos ->
+            fos.write(header)
+            fos.write(allPcm)
+        }
+
+        return outputFile
+    }
+
+    private fun fetchGeminiChunkAudio(
+        text: String,
+        model: String,
+        voice: String,
+        apiKey: String,
+    ): ByteArray {
         val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
 
         val partObj = JSONObject().apply {
@@ -208,7 +249,7 @@ class AIAudioService(
             .post(requestJson.toString().toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
-        val response = httpClient.newCall(request).execute()
+        val response = audioHttpClient.newCall(request).execute()
         val responseBody = response.body?.string().orEmpty()
 
         if (!response.isSuccessful) {
@@ -226,9 +267,7 @@ class AIAudioService(
                 val inlineData = parts.getJSONObject(0).optJSONObject("inlineData")
                 val base64Data = inlineData?.optString("data").orEmpty()
                 if (base64Data.isNotBlank()) {
-                    val rawAudioBytes = Base64.decode(base64Data, Base64.DEFAULT)
-                    writeAudioBytesWithWavHeader(rawAudioBytes, outputFile)
-                    return outputFile
+                    return Base64.decode(base64Data, Base64.DEFAULT)
                 }
             }
         }
@@ -236,21 +275,73 @@ class AIAudioService(
         throw IOException("No audio data generated by Gemini")
     }
 
-    private fun writeAudioBytesWithWavHeader(bytes: ByteArray, file: File) {
-        FileOutputStream(file).use { fos ->
-            if (bytes.size >= 4 &&
-                bytes[0] == 'R'.code.toByte() &&
-                bytes[1] == 'I'.code.toByte() &&
-                bytes[2] == 'F'.code.toByte() &&
-                bytes[3] == 'F'.code.toByte()
-            ) {
-                fos.write(bytes)
-            } else {
-                val wavHeader = createWavHeader(pcmDataSize = bytes.size, sampleRate = 24000)
-                fos.write(wavHeader)
-                fos.write(bytes)
+    private fun extractPcm(bytes: ByteArray): ByteArray {
+        if (bytes.size >= 12 &&
+            bytes[0] == 'R'.code.toByte() &&
+            bytes[1] == 'I'.code.toByte() &&
+            bytes[2] == 'F'.code.toByte() &&
+            bytes[3] == 'F'.code.toByte()
+        ) {
+            var offset = 12
+            while (offset + 8 <= bytes.size) {
+                val chunkId = String(bytes, offset, 4, Charsets.US_ASCII)
+                val buffer = ByteBuffer.wrap(bytes, offset + 4, 4).order(ByteOrder.LITTLE_ENDIAN)
+                val chunkSize = buffer.int
+                offset += 8
+                if (chunkId == "data") {
+                    val end = (offset + chunkSize).coerceAtMost(bytes.size)
+                    return bytes.copyOfRange(offset, end)
+                }
+                offset += chunkSize
             }
+            return if (bytes.size > 44) bytes.copyOfRange(44, bytes.size) else bytes
         }
+        return bytes
+    }
+
+    private fun chunkText(text: String, maxChunkSize: Int = 1500): List<String> {
+        val trimmed = text.trim()
+        if (trimmed.length <= maxChunkSize) {
+            return listOf(trimmed)
+        }
+
+        val chunks = mutableListOf<String>()
+        var remaining = trimmed
+        val punctuationMarks = listOf(". ", ".\n", "? ", "!\n", "! ", "?\n", "\n\n", "\n")
+
+        while (remaining.isNotEmpty()) {
+            if (remaining.length <= maxChunkSize) {
+                chunks.add(remaining)
+                break
+            }
+
+            val candidate = remaining.substring(0, maxChunkSize)
+            var splitIndex = -1
+
+            for (mark in punctuationMarks) {
+                val idx = candidate.lastIndexOf(mark)
+                if (idx > splitIndex && idx > maxChunkSize / 3) {
+                    splitIndex = idx + mark.length
+                }
+            }
+
+            if (splitIndex == -1) {
+                val lastSpace = candidate.lastIndexOf(' ')
+                if (lastSpace > maxChunkSize / 3) {
+                    splitIndex = lastSpace + 1
+                } else {
+                    splitIndex = maxChunkSize
+                }
+            }
+
+            val chunk = remaining.substring(0, splitIndex).trim()
+            if (chunk.isNotEmpty()) {
+                chunks.add(chunk)
+            }
+            remaining = remaining.substring(splitIndex).trim()
+        }
+
+        return chunks.filter { it.isNotBlank() }
     }
 
     private suspend fun generateSystemSpeech(text: String, outputFile: File): File {
@@ -326,7 +417,7 @@ class AIAudioService(
             .post(requestJson.toString().toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
-        val response = httpClient.newCall(request).execute()
+        val response = audioHttpClient.newCall(request).execute()
         if (!response.isSuccessful) {
             val errBody = response.body?.string().orEmpty()
             throw IOException(parseErrorMessage(errBody, "HTTP ${response.code}: ${response.message}"))

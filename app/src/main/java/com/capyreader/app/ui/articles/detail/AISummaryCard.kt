@@ -100,7 +100,14 @@ fun AISummaryCard(
         isAudioLoading = true
         scope.launch {
             try {
-                val result = aiAudioService.generateAudio(textToPlay)
+                snackbarHost.showSnackbar("Generating audio...")
+                val result = aiAudioService.generateAudio(textToPlay) { current, total ->
+                    if (total > 1) {
+                        scope.launch {
+                            snackbarHost.showSnackbar("Generating audio ($current/$total)...")
+                        }
+                    }
+                }
                 result.fold(
                     onSuccess = { audioFile ->
                         onSelectAudio(
