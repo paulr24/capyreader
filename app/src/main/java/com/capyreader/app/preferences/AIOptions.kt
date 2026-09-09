@@ -29,6 +29,68 @@ object GeminiModels {
     )
 }
 
+enum class AIAudioProvider {
+    GEMINI,
+    SYSTEM,
+    OPENAI;
+
+    companion object {
+        val default = GEMINI
+    }
+}
+
+object GeminiAudioModels {
+    const val FLASH_3_1_TTS = "gemini-3.1-flash-tts-preview"
+    const val PRO_2_5_TTS = "gemini-2.5-pro-preview-tts"
+    const val FLASH_2_5_TTS = "gemini-2.5-flash-preview-tts"
+
+    val default = FLASH_3_1_TTS
+
+    val presets = listOf(
+        FLASH_3_1_TTS to "Gemini 3.1 Flash TTS (Latest)",
+        PRO_2_5_TTS to "Gemini 2.5 Pro TTS (High Quality)",
+        FLASH_2_5_TTS to "Gemini 2.5 Flash TTS (Fast)",
+    )
+}
+
+object GeminiVoices {
+    const val KORE = "Kore"
+    const val PUCK = "Puck"
+    const val AOEDE = "Aoede"
+    const val CHARON = "Charon"
+    const val FENRIR = "Fenrir"
+
+    val default = KORE
+
+    val presets = listOf(
+        KORE to "Kore (Warm Female)",
+        PUCK to "Puck (Engaging Male)",
+        AOEDE to "Aoede (Melodic Female)",
+        CHARON to "Charon (Deep Male)",
+        FENRIR to "Fenrir (Crisp Male)",
+    )
+}
+
+object OpenAIVoices {
+    const val ALLOY = "alloy"
+    const val ECHO = "echo"
+    const val FABLE = "fable"
+    const val ONYX = "onyx"
+    const val NOVA = "nova"
+    const val SHIMMER = "shimmer"
+
+    val default = ALLOY
+
+    val presets = listOf(
+        ALLOY to "Alloy (Neutral)",
+        ECHO to "Echo (Warm)",
+        FABLE to "Fable (Expressive British)",
+        ONYX to "Onyx (Deep Authoritative)",
+        NOVA to "Nova (Energetic)",
+        SHIMMER to "Shimmer (Clear Melodic)",
+    )
+}
+
 const val DEFAULT_AI_PROMPT_TEMPLATE =
     "Summarize the following article concisely. Provide a 2-3 sentence overview followed by 3-5 bullet points highlighting the main takeaways.\n\nTitle: %title%\n\n%content%"
 
@@ -59,6 +121,18 @@ class AIOptions(private val preferenceStore: PreferenceStore) {
 
     val autoSummarize: Preference<Boolean>
         get() = preferenceStore.getBoolean("ai_auto_summarize", false)
+
+    val audioProvider: Preference<AIAudioProvider>
+        get() = preferenceStore.getEnum("ai_audio_provider", AIAudioProvider.default)
+
+    val geminiAudioModel: Preference<String>
+        get() = preferenceStore.getString("ai_gemini_audio_model", GeminiAudioModels.default)
+
+    val geminiVoice: Preference<String>
+        get() = preferenceStore.getString("ai_gemini_voice", GeminiVoices.default)
+
+    val openAiVoice: Preference<String>
+        get() = preferenceStore.getString("ai_openai_voice", OpenAIVoices.default)
 
     fun isConfigured(): Boolean {
         return when (provider.get()) {

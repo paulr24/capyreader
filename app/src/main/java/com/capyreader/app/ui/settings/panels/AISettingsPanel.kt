@@ -18,6 +18,8 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Error
+import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -30,6 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,12 +48,17 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.capyreader.app.R
+import com.capyreader.app.ai.AIAudioService
 import com.capyreader.app.ai.AISummarizerService
 import com.capyreader.app.ai.ArticleSummaryRepository
+import com.capyreader.app.preferences.AIAudioProvider
 import com.capyreader.app.preferences.AIProvider
 import com.capyreader.app.preferences.AppPreferences
 import com.capyreader.app.preferences.DEFAULT_AI_PROMPT_TEMPLATE
+import com.capyreader.app.preferences.GeminiAudioModels
 import com.capyreader.app.preferences.GeminiModels
+import com.capyreader.app.preferences.GeminiVoices
+import com.capyreader.app.preferences.OpenAIVoices
 import com.capyreader.app.ui.LocalLinkOpener
 import com.capyreader.app.ui.collectChangesWithDefault
 import com.capyreader.app.ui.components.FormSection
@@ -65,6 +73,7 @@ import org.koin.compose.koinInject
 fun AISettingsPanel(
     appPreferences: AppPreferences = koinInject(),
     aiService: AISummarizerService = koinInject(),
+    aiAudioService: AIAudioService = koinInject(),
     summaryRepository: ArticleSummaryRepository = koinInject(),
 ) {
     val aiOptions = appPreferences.aiOptions
@@ -77,6 +86,13 @@ fun AISettingsPanel(
     val openAiModel by aiOptions.openAiModel.collectChangesWithDefault()
     val promptTemplate by aiOptions.promptTemplate.collectChangesWithDefault()
     val autoSummarize by aiOptions.autoSummarize.collectChangesWithDefault()
+
+    val audioProvider by aiOptions.audioProvider.collectChangesWithDefault()
+    val geminiAudioModel by aiOptions.geminiAudioModel.collectChangesWithDefault()
+    val geminiVoice by aiOptions.geminiVoice.collectChangesWithDefault()
+    val openAiVoice by aiOptions.openAiVoice.collectChangesWithDefault()
+    val isSamplePlaying by aiAudioService.isSamplePlaying.collectAsState()
+    var isGeneratingSample by remember { mutableStateOf(false) }
 
     val linkOpener = LocalLinkOpener.current
     val snackbarHost = LocalSnackbarHost.current
@@ -377,6 +393,104 @@ fun AISettingsPanel(
                 }
             }
 
+            FormSection(title = stringResource(R.string.ai_settings_section_audio)) {
+                PreferenceSelect(
+                    selected = audioProvider,
+                    update = { aiOptions.audioProvider.set(it) },
+                    options = AIAudioProvider.entries,
+                    label = R.string.ai_settings_audio_provider_title,
+                    optionText = {
+                        when (it) {
+                            AIAudioProvider.GEMINI -> stringResource(R.string.ai_audio_provider_gemini)
+                            AIAudioProvider.SYSTEM -> stringResource(R.string.ai_audio_provider_system)
+                            AIAudioProvider.OPENAI -> stringResource(R.string.ai_audio_provider_openai)
+                        }
+                    }
+                )
+
+                if (audioProvider == AIAudioProvider.GEMINI) {
+                    PreferenceSelect(
+                        selected = geminiAudioModel,
+                        update = { aiOptions.geminiAudioModel.set(it) },
+                        options = GeminiAudioModels.presets.map { it.first },
+                        label = R.string.ai_settings_audio_model_title,
+                        optionText = { model ->
+                            GeminiAudioModels.presets.firstOrNull { it.first == model }?.second ?: model
+                        }
+                    )
+
+                    PreferenceSelect(
+                        selected = geminiVoice,
+                        update = { aiOptions.geminiVoice.set(it) },
+                        options = GeminiVoices.presets.map { it.first },
+                        label = R.string.ai_settings_voice_title,
+                        optionText = { voice ->
+                            GeminiVoices.presets.firstOrNull { it.first == voice }?.second ?: voice
+                        }
+                    )
+                } else if (audioProvider == AIAudioProvider.OPENAI) {
+                    PreferenceSelect(
+                        selected = openAiVoice,
+                        update = { aiOptions.openAiVoice.set(it) },
+                        options = OpenAIVoices.presets.map { it.first },
+                        label = R.string.ai_settings_voice_title,
+                        optionText = { voice ->
+                            OpenAIVoices.presets.firstOrNull { it.first == voice }?.second ?: voice
+                        }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = {
+                            if (isSamplePlaying) {
+                                aiAudioService.stopSample()
+                            } else {
+                                isGeneratingSample = true
+                                scope.launch {
+                                    val res = aiAudioService.playSample()
+                                    isGeneratingSample = false
+                                    res.onFailure {
+                                        snackbarHost.showSnackbar(it.message ?: "Failed to play voice sample")
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isGeneratingSample
+                    ) {
+                        if (isGeneratingSample) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text(stringResource(R.string.ai_audio_generating))
+                        } else {
+                            Icon(
+                                imageVector = if (isSamplePlaying) Icons.Rounded.Stop else Icons.Rounded.VolumeUp,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text(
+                                if (isSamplePlaying) {
+                                    stringResource(R.string.ai_settings_stop_sample)
+                                } else {
+                                    stringResource(R.string.ai_settings_play_sample)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
             FormSection(title = stringResource(R.string.ai_settings_section_cache)) {
                 val clearSuccessMessage = stringResource(R.string.ai_settings_clear_cache_success)
                 ListItem(
@@ -389,6 +503,7 @@ fun AISettingsPanel(
                     modifier = Modifier.clickable {
                         scope.launch {
                             summaryRepository.clearAll()
+                            aiAudioService.clearCache()
                             snackbarHost.showSnackbar(clearSuccessMessage)
                         }
                     }

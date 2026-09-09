@@ -405,4 +405,22 @@
     <string name="ai_summary_not_configured_title">AI Not Configured</string>
     <string name="ai_summary_not_configured_message">To summarize articles, configure your Google Gemini or OpenAI-compatible API key in Settings.</string>
     <string name="ai_summary_open_settings">Configure Settings</string>
+    <string name="article_vertical_swipe_ai_summarize">Generate AI Summary</string>
+    <string name="ai_settings_section_audio">Audio &amp; Voice</string>
+    <string name="ai_settings_audio_provider_title">Voice Engine</string>
+    <string name="ai_audio_provider_gemini">Gemini Speech (AI Studio)</string>
+    <string name="ai_audio_provider_system">Device Built-in TTS</string>
+    <string name="ai_audio_provider_openai">OpenAI TTS</string>
+    <string name="ai_settings_audio_model_title">Audio Model</string>
+    <string name="ai_settings_voice_title">Voice</string>
+    <string name="ai_settings_play_sample">Play Voice Sample</string>
+    <string name="ai_settings_stop_sample">Stop Sample</string>
+    <string name="ai_audio_generating">Generating audio…</string>
+    <string name="ai_audio_listen_summary">Listen to summary</string>
+    <string name="ai_audio_listen_article">Listen to article</string>
+    <string name="ai_audio_failure">Failed to generate audio</string>
+    <string name="ai_summary_card_title">AI Summary</string>
+    <string name="ai_summary_generate_button">Summarize Article</string>
+    <string name="ai_summary_collapse">Collapse</string>
+    <string name="ai_summary_expand">Expand</string>
 </resources>

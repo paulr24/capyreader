@@ -138,7 +138,7 @@ class AISummarizerService(
         }
     }
 
-    private fun buildGeminiRequestBody(prompt: String, model: String = ""): String {
+    private fun buildGeminiRequestBody(prompt: String): String {
         val partObject = JSONObject().apply {
             put("text", prompt)
         }
@@ -155,21 +155,12 @@ class AISummarizerService(
         val generationConfig = JSONObject().apply {
             put("temperature", 0.3)
             put("maxOutputTokens", 800)
-            if (model.isBlank() || isThinkingSupported(model)) {
-                put("thinkingConfig", JSONObject().apply {
-                    put("thinkingBudget", 0)
-                })
-            }
         }
 
         return JSONObject().apply {
             put("contents", contentsArray)
             put("generationConfig", generationConfig)
         }.toString()
-    }
-
-    private fun isThinkingSupported(model: String): Boolean {
-        return !model.contains("1.5") && !model.contains("1.0")
     }
 
     private inline fun streamGemini(
@@ -183,7 +174,7 @@ class AISummarizerService(
         }
 
         val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:streamGenerateContent?alt=sse&key=$apiKey"
-        val requestBody = buildGeminiRequestBody(prompt, model).toRequestBody(JSON_MEDIA_TYPE)
+        val requestBody = buildGeminiRequestBody(prompt).toRequestBody(JSON_MEDIA_TYPE)
         val request = Request.Builder()
             .url(url)
             .post(requestBody)
@@ -304,7 +295,7 @@ class AISummarizerService(
         }
 
         val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
-        val requestBody = buildGeminiRequestBody(prompt, model).toRequestBody(JSON_MEDIA_TYPE)
+        val requestBody = buildGeminiRequestBody(prompt).toRequestBody(JSON_MEDIA_TYPE)
         val request = Request.Builder()
             .url(url)
             .post(requestBody)

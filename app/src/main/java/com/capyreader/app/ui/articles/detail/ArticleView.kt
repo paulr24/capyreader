@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Article
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.SnackbarHost
@@ -32,11 +33,13 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.paging.compose.LazyPagingItems
 import com.capyreader.app.common.AudioEnclosure
 import com.capyreader.app.common.Media
 import com.capyreader.app.preferences.AppPreferences
 import com.capyreader.app.preferences.ArticleVerticalSwipe
+import com.capyreader.app.preferences.ArticleVerticalSwipe.AI_SUMMARIZE
 import com.capyreader.app.preferences.ArticleVerticalSwipe.DISABLED
 import com.capyreader.app.preferences.ArticleVerticalSwipe.LOAD_FULL_CONTENT
 import com.capyreader.app.preferences.ArticleVerticalSwipe.NEXT_ARTICLE
@@ -68,6 +71,7 @@ fun ArticleView(
     isAudioPlaying: Boolean = false,
     isFullscreen: Boolean = false,
     onToggleFullscreen: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     appPreferences: AppPreferences = koinInject()
 ) {
     val enableHorizontalPager by appPreferences.readerOptions.enableHorizontaPagination.collectChangesWithDefault()
@@ -114,12 +118,15 @@ fun ArticleView(
         }
     }
 
+    var summaryTrigger by rememberSaveable(article.id) { mutableLongStateOf(0L) }
+
     val onSwipe = { swipe: ArticleVerticalSwipe ->
         when (swipe) {
             LOAD_FULL_CONTENT -> onToggleFullContent()
             OPEN_ARTICLE_IN_BROWSER -> openLink()
             PREVIOUS_ARTICLE -> selectPrevious()
             NEXT_ARTICLE -> selectNext()
+            AI_SUMMARIZE -> { summaryTrigger = System.currentTimeMillis() }
             DISABLED -> {}
         }
     }
@@ -132,11 +139,9 @@ fun ArticleView(
         scrollState.reset()
     }
 
-    var isAISummaryOpen by rememberSaveable(article.id) { mutableStateOf(false) }
-
     LaunchedEffect(article.id) {
         if (appPreferences.aiOptions.enabled.get() && appPreferences.aiOptions.autoSummarize.get()) {
-            isAISummaryOpen = true
+            summaryTrigger = System.currentTimeMillis()
         }
     }
 
@@ -183,6 +188,8 @@ fun ArticleView(
                                 onPauseAudio = onPauseAudio,
                                 currentAudioUrl = currentAudioUrl,
                                 isAudioPlaying = isAudioPlaying,
+                                summaryTrigger = summaryTrigger,
+                                onNavigateToSettings = onNavigateToSettings,
                             )
                         }
                     }
@@ -206,18 +213,11 @@ fun ArticleView(
                 article = article,
                 hasNextArticle = hasNext,
                 onToggleExtractContent = onToggleFullContent,
-                onSummarize = { isAISummaryOpen = true },
+                onSummarize = { summaryTrigger = System.currentTimeMillis() },
                 onToggleRead = onToggleRead,
                 onToggleStar = onToggleStar,
                 onSelectNext = { selectNext() },
             )
-
-            if (isAISummaryOpen) {
-                AISummaryBottomSheet(
-                    article = article,
-                    onDismissRequest = { isAISummaryOpen = false },
-                )
-            }
 
             SnackbarHost(
                 hostState = snackbarHostState,
@@ -290,6 +290,7 @@ fun swipeIcon(
     return when (swipe) {
         LOAD_FULL_CONTENT -> Icons.AutoMirrored.Rounded.Article
         OPEN_ARTICLE_IN_BROWSER -> Icons.AutoMirrored.Rounded.OpenInNew
+        AI_SUMMARIZE -> Icons.Rounded.AutoAwesome
         else -> relatedArticleIcon
     }
 }

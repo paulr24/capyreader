@@ -25,6 +25,10 @@ class AIOptionsTest {
         assertFalse(options.autoSummarize.get())
         assertFalse(options.isConfigured())
         assertEquals(GeminiModels.FLASH_3_5_LITE, options.currentModel())
+        assertEquals(AIAudioProvider.GEMINI, options.audioProvider.get())
+        assertEquals(GeminiAudioModels.FLASH_TTS_3_1, options.geminiAudioModel.get())
+        assertEquals(GeminiVoices.KORE, options.geminiVoice.get())
+        assertEquals(OpenAIVoices.ALLOY, options.openAiVoice.get())
     }
 
     @Test

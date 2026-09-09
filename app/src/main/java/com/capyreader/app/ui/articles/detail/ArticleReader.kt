@@ -56,6 +56,8 @@ fun ArticleReader(
     onPauseAudio: () -> Unit = {},
     currentAudioUrl: String? = null,
     isAudioPlaying: Boolean = false,
+    summaryTrigger: Long = 0L,
+    onNavigateToSettings: () -> Unit = {},
 ) {
     val (shareLink, setShareLink) = rememberSaveableShareLink()
     val (shareImageUrl, setImageUrl) = rememberSaveable { mutableStateOf<String?>(null) }
@@ -132,6 +134,12 @@ fun ArticleReader(
         Column(
             Modifier.fillMaxSize()
         ) {
+            AISummaryCard(
+                article = article,
+                summaryTrigger = summaryTrigger,
+                onNavigateToSettings = onNavigateToSettings,
+                onSelectAudio = onSelectAudio,
+            )
             WebView(
                 modifier = Modifier.fillMaxSize(),
                 state = webViewState,
@@ -140,7 +148,15 @@ fun ArticleReader(
             )
         }
     } else {
-        ScrollableWebView(webViewState, article, showImages, pinToolbars)
+        ScrollableWebView(
+            webViewState = webViewState,
+            article = article,
+            showImages = showImages,
+            pinToolbars = pinToolbars,
+            summaryTrigger = summaryTrigger,
+            onNavigateToSettings = onNavigateToSettings,
+            onSelectAudio = onSelectAudio,
+        )
     }
 
     ArticleStyleListener(webView = webViewState.webView)
@@ -167,7 +183,15 @@ fun ArticleReader(
 }
 
 @Composable
-fun ScrollableWebView(webViewState: WebViewState, article: Article, showImages: Boolean, pinToolbars: Boolean) {
+fun ScrollableWebView(
+    webViewState: WebViewState,
+    article: Article,
+    showImages: Boolean,
+    pinToolbars: Boolean,
+    summaryTrigger: Long = 0L,
+    onNavigateToSettings: () -> Unit = {},
+    onSelectAudio: (AudioEnclosure) -> Unit = {},
+) {
     var maxHeight by remember { mutableFloatStateOf(0f) }
     val scrollState = rememberSaveable(article.id, saver = ScrollState.Saver) {
         ScrollState(initial = 0)
@@ -192,6 +216,12 @@ fun ScrollableWebView(webViewState: WebViewState, article: Article, showImages: 
                 if (!pinToolbars) {
                     Spacer(Modifier.height(ArticleBarDefaults.topBarOffset))
                 }
+                AISummaryCard(
+                    article = article,
+                    summaryTrigger = summaryTrigger,
+                    onNavigateToSettings = onNavigateToSettings,
+                    onSelectAudio = onSelectAudio,
+                )
                 WebView(
                     modifier = Modifier
                         .fillMaxWidth()

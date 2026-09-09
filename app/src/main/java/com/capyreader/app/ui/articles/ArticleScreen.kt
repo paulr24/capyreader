@@ -676,6 +676,7 @@ fun ArticleScreen(
                         isAudioPlaying = isAudioPlaying,
                         isFullscreen = paneExpansion.isFullscreen,
                         onToggleFullscreen = { paneExpansion.toggleFullscreen() },
+                        onNavigateToSettings = onNavigateToSettings,
                     )
                 }
             }

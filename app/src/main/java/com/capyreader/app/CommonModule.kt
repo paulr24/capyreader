@@ -5,6 +5,7 @@ import com.capyreader.app.common.AndroidDatabaseProvider
 import com.capyreader.app.common.AndroidClientCertManager
 import com.capyreader.app.common.AppFaviconPolicy
 import com.capyreader.app.common.SharedPreferenceStoreProvider
+import com.capyreader.app.ai.AIAudioService
 import com.capyreader.app.ai.AISummarizerService
 import com.capyreader.app.ai.ArticleSummaryRepository
 import com.capyreader.app.preferences.AppPreferences
@@ -43,6 +44,7 @@ internal val common = module {
     single { RefreshScheduler(get(), get()) }
     single { ArticleSummaryRepository(androidContext()) }
     single { AISummarizerService(get(), get()) }
+    single { AIAudioService(androidContext(), get(), get()) }
 }
 
 private fun Locale.toAcceptLanguageTag(): String {
