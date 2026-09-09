@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FiberManualRecord
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FiberManualRecord
 import androidx.compose.material.icons.rounded.Share
@@ -51,6 +52,7 @@ fun ArticleBottomBar(
     article: Article,
     hasNextArticle: Boolean,
     onToggleExtractContent: () -> Unit,
+    onSummarize: () -> Unit = {},
     onToggleRead: () -> Unit,
     onToggleStar: () -> Unit,
     onSelectNext: () -> Unit,
@@ -132,6 +134,18 @@ fun ArticleBottomBar(
                                 modifier = Modifier.size(24.dp)
                             )
                         }
+                    }
+                }
+                ToolbarTooltip(
+                    positioning = TooltipAnchorPosition.Above,
+                    message = stringResource(R.string.article_action_summarize)
+                ) {
+                    IconButton(onClick = { onSummarize() }) {
+                        Icon(
+                            Icons.Rounded.AutoAwesome,
+                            contentDescription = stringResource(R.string.article_action_summarize),
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
                 ToolbarTooltip(

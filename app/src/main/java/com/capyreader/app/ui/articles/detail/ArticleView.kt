@@ -20,7 +20,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -129,6 +132,14 @@ fun ArticleView(
         scrollState.reset()
     }
 
+    var isAISummaryOpen by rememberSaveable(article.id) { mutableStateOf(false) }
+
+    LaunchedEffect(article.id) {
+        if (appPreferences.aiOptions.enabled.get() && appPreferences.aiOptions.autoSummarize.get()) {
+            isAISummaryOpen = true
+        }
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     val contentPadding = rememberContentPadding(pinToolbars)
@@ -195,10 +206,18 @@ fun ArticleView(
                 article = article,
                 hasNextArticle = hasNext,
                 onToggleExtractContent = onToggleFullContent,
+                onSummarize = { isAISummaryOpen = true },
                 onToggleRead = onToggleRead,
                 onToggleStar = onToggleStar,
                 onSelectNext = { selectNext() },
             )
+
+            if (isAISummaryOpen) {
+                AISummaryBottomSheet(
+                    article = article,
+                    onDismissRequest = { isAISummaryOpen = false },
+                )
+            }
 
             SnackbarHost(
                 hostState = snackbarHostState,

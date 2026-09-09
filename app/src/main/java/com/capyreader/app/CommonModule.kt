@@ -5,6 +5,8 @@ import com.capyreader.app.common.AndroidDatabaseProvider
 import com.capyreader.app.common.AndroidClientCertManager
 import com.capyreader.app.common.AppFaviconPolicy
 import com.capyreader.app.common.SharedPreferenceStoreProvider
+import com.capyreader.app.ai.AISummarizerService
+import com.capyreader.app.ai.ArticleSummaryRepository
 import com.capyreader.app.preferences.AppPreferences
 import com.capyreader.app.refresher.RefreshScheduler
 import com.jocmp.capy.AccountManager
@@ -39,6 +41,8 @@ internal val common = module {
     }
     single { AppPreferences(get()) }
     single { RefreshScheduler(get(), get()) }
+    single { ArticleSummaryRepository(androidContext()) }
+    single { AISummarizerService(get(), get()) }
 }
 
 private fun Locale.toAcceptLanguageTag(): String {

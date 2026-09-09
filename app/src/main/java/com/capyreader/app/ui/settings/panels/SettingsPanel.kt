@@ -4,6 +4,7 @@ import android.os.Parcelable
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Gesture
 import androidx.compose.material.icons.rounded.Info
@@ -60,6 +61,11 @@ sealed class SettingsPanel(@StringRes val title: Int) {
         override fun icon() = Icons.Rounded.Visibility
     }
 
+    @Parcelize
+    data object AI : SettingsPanel(title = R.string.settings_panel_ai_title), Parcelable {
+        override fun icon() = Icons.Rounded.AutoAwesome
+    }
+
     fun isNested() = !items.contains(this)
 
     companion object {
@@ -68,6 +74,7 @@ sealed class SettingsPanel(@StringRes val title: Int) {
                 General,
                 Display,
                 Gestures,
+                AI,
                 Account,
                 About,
             )

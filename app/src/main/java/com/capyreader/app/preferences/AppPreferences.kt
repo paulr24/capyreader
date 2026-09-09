@@ -28,6 +28,8 @@ class AppPreferences(context: Context) {
 
     val articleListOptions = ArticleListOptions(preferenceStore)
 
+    val aiOptions = AIOptions(preferenceStore)
+
     val isLoggedIn
         get() = accountID.get().isNotBlank()
 
