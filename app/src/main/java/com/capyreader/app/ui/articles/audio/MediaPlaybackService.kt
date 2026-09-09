@@ -6,9 +6,11 @@ import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.ForwardingPlayer
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
@@ -22,6 +24,7 @@ import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import com.capyreader.app.R
+import com.jocmp.capy.logging.CapyLog
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -51,8 +54,9 @@ class MediaPlaybackService : MediaSessionService() {
 
         val okHttpClient = baseHttpClient()
         val okHttpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+        val defaultDataSourceFactory = DefaultDataSource.Factory(this, okHttpDataSourceFactory)
         val cacheDataSourceFactory = CacheDataSource.Factory()
-            .setUpstreamDataSourceFactory(okHttpDataSourceFactory)
+            .setUpstreamDataSourceFactory(defaultDataSourceFactory)
             .also { factory ->
                 cache?.let {
                     factory.setCache(it)
@@ -73,6 +77,12 @@ class MediaPlaybackService : MediaSessionService() {
             )
             .setHandleAudioBecomingNoisy(true)
             .build()
+
+        exoPlayer.addListener(object : Player.Listener {
+            override fun onPlayerError(error: PlaybackException) {
+                CapyLog.error("media_playback_service", error)
+            }
+        })
 
         val notificationProvider = DefaultMediaNotificationProvider(this)
         notificationProvider.setSmallIcon(R.drawable.capy_icon_small)

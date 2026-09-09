@@ -56,17 +56,28 @@ class AIAudioService(
                 return@withContext Result.failure(IllegalArgumentException("Text is empty"))
             }
 
+            val textToSpeak = if (cleanText.length > 12_000) {
+                val prefix = cleanText.take(12_000)
+                if (prefix.contains('.')) {
+                    prefix.substringBeforeLast('.') + "."
+                } else {
+                    prefix
+                }
+            } else {
+                cleanText
+            }
+
             val provider = aiOptions.audioProvider.get()
-            val cacheKey = buildCacheKey(cleanText, provider)
+            val cacheKey = buildCacheKey(textToSpeak, provider)
             val cachedFile = File(audioDir, "$cacheKey.wav")
             if (cachedFile.exists() && cachedFile.length() > 0) {
                 return@withContext Result.success(cachedFile)
             }
 
             val resultFile = when (provider) {
-                AIAudioProvider.GEMINI -> generateGeminiSpeech(cleanText, cachedFile)
-                AIAudioProvider.SYSTEM -> generateSystemSpeech(cleanText, cachedFile)
-                AIAudioProvider.OPENAI -> generateOpenAISpeech(cleanText, File(audioDir, "$cacheKey.mp3"))
+                AIAudioProvider.GEMINI -> generateGeminiSpeech(textToSpeak, cachedFile)
+                AIAudioProvider.SYSTEM -> generateSystemSpeech(textToSpeak, cachedFile)
+                AIAudioProvider.OPENAI -> generateOpenAISpeech(textToSpeak, File(audioDir, "$cacheKey.mp3"))
             }
 
             Result.success(resultFile)

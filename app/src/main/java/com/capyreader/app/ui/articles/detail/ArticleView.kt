@@ -24,7 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -32,12 +32,15 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.paging.compose.LazyPagingItems
 import com.capyreader.app.common.AudioEnclosure
 import com.capyreader.app.common.Media
 import com.capyreader.app.preferences.AppPreferences
+import com.capyreader.app.ui.articles.audio.AudioPlayerController
+import com.capyreader.app.ui.articles.audio.FloatingAudioPlayer
 import com.capyreader.app.preferences.ArticleVerticalSwipe
 import com.capyreader.app.preferences.ArticleVerticalSwipe.AI_SUMMARIZE
 import com.capyreader.app.preferences.ArticleVerticalSwipe.DISABLED
@@ -72,6 +75,7 @@ fun ArticleView(
     isFullscreen: Boolean = false,
     onToggleFullscreen: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    audioController: AudioPlayerController = koinInject(),
     appPreferences: AppPreferences = koinInject()
 ) {
     val enableHorizontalPager by appPreferences.readerOptions.enableHorizontaPagination.collectChangesWithDefault()
@@ -146,6 +150,7 @@ fun ArticleView(
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val audioEnclosure by audioController.currentAudio.collectAsState()
 
     val contentPadding = rememberContentPadding(pinToolbars)
 
@@ -217,13 +222,27 @@ fun ArticleView(
                 onToggleRead = onToggleRead,
                 onToggleStar = onToggleStar,
                 onSelectNext = { selectNext() },
+                bottomPadding = if (audioEnclosure != null) 120.dp else ArticleBarDefaults.FloatingToolbarBottomGap,
             )
+
+            audioEnclosure?.let { audio ->
+                FloatingAudioPlayer(
+                    audio = audio,
+                    controller = audioController,
+                    onDismiss = {
+                        audioController.dismiss()
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .zIndex(2f),
+                )
+            }
 
             SnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 80.dp)
+                    .padding(bottom = if (audioEnclosure != null) 180.dp else 80.dp)
             )
           }
         }

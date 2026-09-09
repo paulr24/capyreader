@@ -8,6 +8,7 @@ import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
@@ -94,6 +95,10 @@ class AudioPlayerController(
                     _isPlaying.value = false
                     controller.pause()
                 }
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                CapyLog.error("audio_player_controller", error)
             }
         })
     }

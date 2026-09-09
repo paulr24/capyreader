@@ -1,5 +1,6 @@
 package com.capyreader.app.ui.articles.detail
 
+import android.net.Uri
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -134,6 +135,10 @@ fun ArticleReader(
         Column(
             Modifier.fillMaxSize()
         ) {
+            ArticleHeader(
+                article = article,
+                onOpenLink = { linkOpener.open(it) },
+            )
             AISummaryCard(
                 article = article,
                 summaryTrigger = summaryTrigger,
@@ -156,6 +161,7 @@ fun ArticleReader(
             summaryTrigger = summaryTrigger,
             onNavigateToSettings = onNavigateToSettings,
             onSelectAudio = onSelectAudio,
+            onOpenLink = { linkOpener.open(it) },
         )
     }
 
@@ -191,6 +197,7 @@ fun ScrollableWebView(
     summaryTrigger: Long = 0L,
     onNavigateToSettings: () -> Unit = {},
     onSelectAudio: (AudioEnclosure) -> Unit = {},
+    onOpenLink: (Uri) -> Unit = {},
 ) {
     var maxHeight by remember { mutableFloatStateOf(0f) }
     val scrollState = rememberSaveable(article.id, saver = ScrollState.Saver) {
@@ -222,6 +229,10 @@ fun ScrollableWebView(
                 if (!pinToolbars) {
                     Spacer(Modifier.height(ArticleBarDefaults.topBarOffset))
                 }
+                ArticleHeader(
+                    article = article,
+                    onOpenLink = onOpenLink,
+                )
                 AISummaryCard(
                     article = article,
                     summaryTrigger = summaryTrigger,

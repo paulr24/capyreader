@@ -1,5 +1,6 @@
 package com.capyreader.app.ui.articles.detail
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -104,7 +105,7 @@ fun AISummaryCard(
                     onSuccess = { audioFile ->
                         onSelectAudio(
                             AudioEnclosure(
-                                url = audioFile.toURI().toString(),
+                                url = Uri.fromFile(audioFile).toString(),
                                 title = title,
                                 feedName = article.title,
                                 durationSeconds = null,
@@ -268,10 +269,12 @@ fun AISummaryCard(
                             ) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.ai_audio_listen_summary)) },
+                                    enabled = !summaryText.isNullOrBlank(),
                                     onClick = {
                                         showAudioMenu = false
-                                        summaryText?.let {
-                                            playAudioForText(it, "Summary: ${article.title}")
+                                        val text = summaryText
+                                        if (!text.isNullOrBlank()) {
+                                            playAudioForText(text, "Summary: ${article.title}")
                                         }
                                     }
                                 )
@@ -281,7 +284,7 @@ fun AISummaryCard(
                                         showAudioMenu = false
                                         val raw = article.content.ifBlank { article.summary }
                                         val clean = Jsoup.parse(raw).text()
-                                        playAudioForText(clean, "Article: ${article.title}")
+                                        playAudioForText(clean, article.title)
                                     }
                                 )
                             }
