@@ -35,8 +35,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -85,7 +85,7 @@ fun AISummaryCard(
         return
     }
 
-    val modelName = remember { aiOptions.currentModel() }
+    val modelName = remember { aiOptions.currentModelDisplayName() }
     val fontFamilyOption by appPreferences.readerOptions.fontFamily.collectChangesWithDefault()
     val articleFont = remember(fontFamilyOption) { findFont(fontFamilyOption) }
     val scope = rememberCoroutineScope()
@@ -218,31 +218,31 @@ fun AISummaryCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.AutoAwesome,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(22.dp)
                     )
-                    Text(
-                        text = stringResource(R.string.ai_summary_card_title),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontFamily = articleFont
-                        ),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    SuggestionChip(
-                        onClick = {},
-                        label = {
-                            Text(
-                                text = modelName,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-                    )
+                    Column {
+                        Text(
+                            text = stringResource(R.string.ai_summary_card_title),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontFamily = articleFont
+                            ),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = modelName,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
                 Row(

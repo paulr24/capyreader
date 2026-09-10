@@ -147,4 +147,17 @@ class AIOptions(private val preferenceStore: PreferenceStore) {
             AIProvider.OPENAI_COMPATIBLE -> openAiModel.get()
         }
     }
+
+    fun currentModelDisplayName(): String {
+        val model = currentModel()
+        return when (model) {
+            GeminiModels.FLASH_3_5_LITE -> "Gemini 3.5 Flash Lite"
+            GeminiModels.FLASH_3_7 -> "Gemini 3.7 Flash"
+            GeminiModels.FLASH_2_5_LITE -> "Gemini 2.5 Flash Lite"
+            GeminiModels.FLASH_2_5 -> "Gemini 2.5 Flash"
+            "gpt-4o-mini" -> "GPT-4o Mini"
+            "gpt-4o" -> "GPT-4o"
+            else -> model
+        }
+    }
 }
