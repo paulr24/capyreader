@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.capyreader.app.notifications.NotificationHelper
 import com.capyreader.app.preferences.AppPreferences
 import com.capyreader.app.preferences.ArticleListVerticalSwipe
+import com.capyreader.app.preferences.MarkReadDelay
 import com.capyreader.app.refresher.RefreshInterval
 import com.capyreader.app.ui.articles.feeds.AngleRefreshState
 import com.jocmp.capy.Account
@@ -226,7 +227,21 @@ class ArticleScreenViewModelTest {
     }
 
     @Test
-    fun `selectArticle does not immediately mark unread article as read`() = runTest {
+    fun `selectArticle marks unread article as read immediately by default`() = runTest {
+        val article = createArticle(id = "1", read = false)
+        coEvery { account.findArticle("1") } returns article
+
+        val viewModel = buildViewModel()
+        viewModel.selectArticle("1")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { account.markRead("1") }
+        assertEquals(true, viewModel.article?.read)
+    }
+
+    @Test
+    fun `selectArticle does not immediately mark unread article as read when delay configured`() = runTest {
+        appPreferences.readerOptions.markReadDelay.set(MarkReadDelay.SECONDS_5)
         val article = createArticle(id = "1", read = false)
         coEvery { account.findArticle("1") } returns article
 
@@ -238,7 +253,8 @@ class ArticleScreenViewModelTest {
     }
 
     @Test
-    fun `selectArticle marks unread article as read after 5 seconds`() = runTest {
+    fun `selectArticle marks unread article as read after 5 seconds when delay configured`() = runTest {
+        appPreferences.readerOptions.markReadDelay.set(MarkReadDelay.SECONDS_5)
         val article = createArticle(id = "1", read = false)
         coEvery { account.findArticle("1") } returns article
 
@@ -255,6 +271,7 @@ class ArticleScreenViewModelTest {
 
     @Test
     fun `selectArticle commits previous pending mark read when new article selected`() = runTest {
+        appPreferences.readerOptions.markReadDelay.set(MarkReadDelay.SECONDS_5)
         val article1 = createArticle(id = "1", read = false)
         val article2 = createArticle(id = "2", read = false)
         coEvery { account.findArticle("1") } returns article1
@@ -274,6 +291,7 @@ class ArticleScreenViewModelTest {
 
     @Test
     fun `flushPendingMarkRead marks pending article as read immediately`() = runTest {
+        appPreferences.readerOptions.markReadDelay.set(MarkReadDelay.SECONDS_5)
         val article = createArticle(id = "1", read = false)
         coEvery { account.findArticle("1") } returns article
 
@@ -290,6 +308,7 @@ class ArticleScreenViewModelTest {
 
     @Test
     fun `clearArticle commits pending mark read`() = runTest {
+        appPreferences.readerOptions.markReadDelay.set(MarkReadDelay.SECONDS_5)
         val article = createArticle(id = "1", read = false)
         coEvery { account.findArticle("1") } returns article
 

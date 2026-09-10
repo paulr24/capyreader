@@ -592,12 +592,23 @@ class ArticleScreenViewModel(
 
         viewModelScope.launchIO {
             val article = buildArticle(articleID) ?: return@launchIO
-            _article = article
+            val delayDuration = appPreferences.readerOptions.markReadDelay.get().duration
+            val willMarkImmediately = !article.read && delayDuration == Duration.ZERO
 
-            if (!article.read) {
+            _article = if (willMarkImmediately) {
+                article.copy(read = true)
+            } else {
+                article
+            }
+
+            if (willMarkImmediately) {
+                launchIO {
+                    markRead(articleID)
+                }
+            } else if (!article.read) {
                 pendingMarkReadArticleID = articleID
                 markReadJob = viewModelScope.launchIO {
-                    delay(MARK_READ_DELAY)
+                    delay(delayDuration)
                     markRead(articleID)
                     pendingMarkReadArticleID = null
                     if (_article?.id == articleID) {
@@ -1000,7 +1011,6 @@ class ArticleScreenViewModel(
 
     companion object {
         val SYNC_FLUSH_INTERVAL = 2.minutes
-        val MARK_READ_DELAY = 5.seconds
     }
 }
 

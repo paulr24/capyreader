@@ -45,6 +45,7 @@ import com.capyreader.app.R
 import com.capyreader.app.common.RowItem
 import com.capyreader.app.notifications.Notifications
 import com.capyreader.app.preferences.AfterReadAllBehavior
+import com.capyreader.app.preferences.MarkReadDelay
 import com.capyreader.app.refresher.RefreshInterval
 import com.capyreader.app.ui.CrashReporting
 import com.capyreader.app.ui.components.FormSection
@@ -92,6 +93,8 @@ fun GeneralSettingsPanel(
             updateOpenLinksInternally = viewModel::updateOpenLinksInternally,
             updateMaxArticles = viewModel::updateMaxArticles,
             maxArticles = viewModel.maxArticles,
+            updateMarkReadDelay = viewModel::updateMarkReadDelay,
+            markReadDelay = viewModel.markReadDelay,
             updateAutoDelete = viewModel::updateAutoDelete,
             autoDelete = viewModel.autoDelete,
             onClearArticles = viewModel::clearAllArticles,
@@ -122,6 +125,8 @@ fun GeneralSettingsPanelView(
     updateOpenLinksInternally: (canOpenLinksInternally: Boolean) -> Unit,
     updateMaxArticles: (MaxArticles) -> Unit,
     maxArticles: MaxArticles,
+    updateMarkReadDelay: (MarkReadDelay) -> Unit,
+    markReadDelay: MarkReadDelay,
     updateAutoDelete: (AutoDelete) -> Unit,
     autoDelete: AutoDelete,
     updateSortOrder: (SortOrder) -> Unit,
@@ -197,13 +202,20 @@ fun GeneralSettingsPanelView(
         }
 
         FormSection(title = stringResource(R.string.settings_reader_title)) {
-            RowItem {
-                TextSwitch(
-                    checked = enableStickyFullContent,
-                    onCheckedChange = updateStickyFullContent,
-                    title = stringResource(R.string.settings_option_full_content_title),
-                    subtitle = stringResource(R.string.settings_option_full_content_subtitle)
+            Column {
+                MarkReadDelayMenu(
+                    markReadDelay = markReadDelay,
+                    updateMarkReadDelay = updateMarkReadDelay,
                 )
+
+                RowItem {
+                    TextSwitch(
+                        checked = enableStickyFullContent,
+                        onCheckedChange = updateStickyFullContent,
+                        title = stringResource(R.string.settings_option_full_content_title),
+                        subtitle = stringResource(R.string.settings_option_full_content_subtitle)
+                    )
+                }
             }
         }
 
@@ -382,6 +394,8 @@ private fun GeneralSettingsPanelPreview() {
                 updateOpenLinksInternally = {},
                 updateMaxArticles = {},
                 maxArticles = MaxArticles.default,
+                updateMarkReadDelay = {},
+                markReadDelay = MarkReadDelay.default,
                 updateAutoDelete = {},
                 autoDelete = AutoDelete.WEEKLY,
                 sortOrder = SortOrder.NEWEST_FIRST,

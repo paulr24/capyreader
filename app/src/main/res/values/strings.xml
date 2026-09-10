@@ -222,6 +222,11 @@
     <string name="settings_max_unread_articles_10000">10,000</string>
     <string name="settings_max_unread_articles_25000">25,000</string>
     <string name="settings_max_unread_articles_unlimited">Unlimited</string>
+    <string name="settings_mark_read_delay_title">Mark as read</string>
+    <string name="settings_mark_read_delay_immediately">Immediately</string>
+    <string name="settings_mark_read_delay_5_seconds">After 5 seconds</string>
+    <string name="settings_mark_read_delay_10_seconds">After 10 seconds</string>
+    <string name="settings_mark_read_delay_15_seconds">After 15 seconds</string>
     <string name="settings_auto_delete_articles_title">Keep read articles</string>
     <string name="settings_auto_delete_option_keep_forever">Forever</string>
     <string name="settings_auto_delete_option_keep_for_one_week">1 week</string>

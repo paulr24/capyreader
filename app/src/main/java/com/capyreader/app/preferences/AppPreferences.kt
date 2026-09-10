@@ -136,6 +136,9 @@ class AppPreferences(context: Context) {
 
         val titleFollowsBodyFont: Preference<Boolean>
             get() = preferenceStore.getBoolean("article_title_follows_body_font", false)
+
+        val markReadDelay: Preference<MarkReadDelay>
+            get() = preferenceStore.getEnum("article_mark_read_delay", MarkReadDelay.default)
     }
 
     class ArticleListOptions(private val preferenceStore: PreferenceStore) {

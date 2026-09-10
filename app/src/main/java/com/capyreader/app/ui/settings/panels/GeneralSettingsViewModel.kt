@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capyreader.app.preferences.AfterReadAllBehavior
 import com.capyreader.app.preferences.AppPreferences
+import com.capyreader.app.preferences.MarkReadDelay
 import com.capyreader.app.refresher.RefreshInterval
 import com.capyreader.app.refresher.RefreshScheduler
 import com.jocmp.capy.Account
@@ -32,6 +33,9 @@ class GeneralSettingsViewModel(
         private set
 
     var maxArticles by mutableStateOf(account.preferences.maxArticles.get())
+        private set
+
+    var markReadDelay by mutableStateOf(appPreferences.readerOptions.markReadDelay.get())
         private set
 
     var canOpenLinksInternally by mutableStateOf(appPreferences.openLinksInternally.get())
@@ -91,6 +95,12 @@ class GeneralSettingsViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             account.pruneExcessArticles()
         }
+    }
+
+    fun updateMarkReadDelay(delay: MarkReadDelay) {
+        appPreferences.readerOptions.markReadDelay.set(delay)
+
+        this.markReadDelay = delay
     }
 
     fun updateOpenLinksInternally(openLinksInternally: Boolean) {
