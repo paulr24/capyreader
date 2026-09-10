@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.toFontFamily
 import androidx.compose.ui.unit.sp
@@ -85,7 +86,7 @@ private fun Context.translationKey(option: FontOption): String {
     }
 }
 
-private fun findFont(fontOption: FontOption) = when (fontOption) {
+internal fun findFont(fontOption: FontOption): FontFamily? = when (fontOption) {
     FontOption.SYSTEM_DEFAULT -> null
     FontOption.ATKINSON_HYPERLEGIBLE -> Font(resId = R.font.atkinson_hyperlegible)
     FontOption.INTER -> Font(resId = R.font.inter)

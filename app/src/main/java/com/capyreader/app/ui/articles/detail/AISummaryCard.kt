@@ -56,6 +56,7 @@ import com.capyreader.app.ai.AISummarizerService
 import com.capyreader.app.ai.ArticleSummaryRepository
 import com.capyreader.app.common.AudioEnclosure
 import com.capyreader.app.preferences.AppPreferences
+import com.capyreader.app.ui.collectChangesWithDefault
 import com.capyreader.app.ui.components.LocalSnackbarHost
 import com.capyreader.app.ui.components.MarkdownFormatter
 import com.capyreader.app.ui.components.buildCopyToClipboard
@@ -85,6 +86,8 @@ fun AISummaryCard(
     }
 
     val modelName = remember { aiOptions.currentModel() }
+    val fontFamilyOption by appPreferences.readerOptions.fontFamily.collectChangesWithDefault()
+    val articleFont = remember(fontFamilyOption) { findFont(fontFamilyOption) }
     val scope = rememberCoroutineScope()
     val snackbarHost = LocalSnackbarHost.current
 
@@ -226,7 +229,9 @@ fun AISummaryCard(
                     )
                     Text(
                         text = stringResource(R.string.ai_summary_card_title),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontFamily = articleFont
+                        ),
                         fontWeight = FontWeight.SemiBold
                     )
                     SuggestionChip(
@@ -409,7 +414,9 @@ fun AISummaryCard(
                             SelectionContainer {
                                 Text(
                                     text = formattedText,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontFamily = articleFont
+                                    ),
                                     lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.35f,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )

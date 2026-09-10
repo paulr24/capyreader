@@ -128,13 +128,3 @@ fun ArticleHeader(
         }
     }
 }
-
-private fun findFont(fontOption: FontOption): FontFamily? = when (fontOption) {
-    FontOption.SYSTEM_DEFAULT -> null
-    FontOption.ATKINSON_HYPERLEGIBLE -> Font(resId = R.font.atkinson_hyperlegible)
-    FontOption.INTER -> Font(resId = R.font.inter)
-    FontOption.JOST -> Font(resId = R.font.jost)
-    FontOption.LITERATA -> Font(resId = R.font.literata)
-    FontOption.POPPINS -> Font(resId = R.font.poppins)
-    FontOption.VOLLKORN -> Font(resId = R.font.vollkorn)
-}?.toFontFamily()
