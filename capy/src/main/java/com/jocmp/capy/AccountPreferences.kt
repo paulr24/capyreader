@@ -1,6 +1,7 @@
 package com.jocmp.capy
 
 import com.jocmp.capy.accounts.AutoDelete
+import com.jocmp.capy.accounts.MaxArticles
 import com.jocmp.capy.accounts.Source
 import com.jocmp.capy.common.TimeHelpers
 import com.jocmp.capy.preferences.Preference
@@ -27,6 +28,9 @@ class AccountPreferences(
 
     val autoDelete: Preference<AutoDelete>
         get() = store.getEnum("auto_delete_articles", AutoDelete.default)
+
+    val maxArticles: Preference<MaxArticles>
+        get() = store.getEnum("max_unread_articles", MaxArticles.default)
 
     val filterKeywords: Preference<Set<String>>
         get() = store.getStringSet("keyword_blocklist")

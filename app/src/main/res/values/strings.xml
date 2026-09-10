@@ -216,6 +216,12 @@
     <string name="settings_account_title">Account</string>
     <string name="settings_about_title">About</string>
     <string name="settings_list_top_bar_title">Settings</string>
+    <string name="settings_max_unread_articles_title">Max unread articles</string>
+    <string name="settings_max_unread_articles_2500">2,500</string>
+    <string name="settings_max_unread_articles_5000">5,000</string>
+    <string name="settings_max_unread_articles_10000">10,000</string>
+    <string name="settings_max_unread_articles_25000">25,000</string>
+    <string name="settings_max_unread_articles_unlimited">Unlimited</string>
     <string name="settings_auto_delete_articles_title">Keep read articles</string>
     <string name="settings_auto_delete_option_keep_forever">Forever</string>
     <string name="settings_auto_delete_option_keep_for_one_week">1 week</string>

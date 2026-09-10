@@ -292,3 +292,12 @@ deleteArticlesByID {
   DELETE FROM enclosures WHERE article_id IN :articleIDs;
   DELETE FROM articles WHERE id IN :articleIDs;
 }
+
+findExcessUnreadArticleIDs:
+SELECT articles.id
+FROM articles
+JOIN article_statuses ON articles.id = article_statuses.article_id
+WHERE article_statuses.starred = 0
+  AND article_statuses.read = 0
+ORDER BY articles.published_at DESC
+LIMIT -1 OFFSET :maxArticles;

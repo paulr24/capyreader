@@ -155,6 +155,18 @@ class ArticleRecords(
         }
     }
 
+    fun pruneExcessUnreadArticles(limit: Long) {
+        database.transactionWithErrorHandling {
+            val excessIDs = database.articlesQueries
+                .findExcessUnreadArticleIDs(maxArticles = limit)
+                .executeAsList()
+
+            excessIDs.chunked(500).forEach { batchIDs ->
+                database.articlesQueries.deleteArticlesByID(batchIDs)
+            }
+        }
+    }
+
     fun markAllUnread(articleIDs: List<String>, updatedAt: ZonedDateTime = nowUTC()) {
         val updated = updatedAt.toEpochSecond()
 

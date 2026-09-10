@@ -58,6 +58,7 @@ import com.capyreader.app.ui.settings.filters.FiltersItem
 import com.capyreader.app.ui.settings.filters.LocalFilterKeywords
 import com.capyreader.app.ui.theme.CapyTheme
 import com.jocmp.capy.accounts.AutoDelete
+import com.jocmp.capy.accounts.MaxArticles
 import com.jocmp.capy.accounts.Source
 import com.jocmp.capy.articles.SortOrder
 import com.jocmp.capy.common.launchUI
@@ -89,6 +90,8 @@ fun GeneralSettingsPanel(
             updateRefreshOnWiFiOnly = viewModel::updateRefreshOnWiFiOnly,
             canOpenLinksInternally = viewModel.canOpenLinksInternally,
             updateOpenLinksInternally = viewModel::updateOpenLinksInternally,
+            updateMaxArticles = viewModel::updateMaxArticles,
+            maxArticles = viewModel.maxArticles,
             updateAutoDelete = viewModel::updateAutoDelete,
             autoDelete = viewModel.autoDelete,
             onClearArticles = viewModel::clearAllArticles,
@@ -117,6 +120,8 @@ fun GeneralSettingsPanelView(
     updateRefreshOnWiFiOnly: (enabled: Boolean) -> Unit,
     canOpenLinksInternally: Boolean,
     updateOpenLinksInternally: (canOpenLinksInternally: Boolean) -> Unit,
+    updateMaxArticles: (MaxArticles) -> Unit,
+    maxArticles: MaxArticles,
     updateAutoDelete: (AutoDelete) -> Unit,
     autoDelete: AutoDelete,
     updateSortOrder: (SortOrder) -> Unit,
@@ -237,6 +242,11 @@ fun GeneralSettingsPanelView(
         ) {
             Column {
                 CrashLogExportItem(source = source)
+
+                MaxArticlesMenu(
+                    updateMaxArticles = updateMaxArticles,
+                    maxArticles = maxArticles,
+                )
 
                 AutoDeleteMenu(
                     updateAutoDelete = updateAutoDelete,
@@ -370,6 +380,8 @@ private fun GeneralSettingsPanelPreview() {
                 canOpenLinksInternally = false,
                 onClearArticles = {},
                 updateOpenLinksInternally = {},
+                updateMaxArticles = {},
+                maxArticles = MaxArticles.default,
                 updateAutoDelete = {},
                 autoDelete = AutoDelete.WEEKLY,
                 sortOrder = SortOrder.NEWEST_FIRST,

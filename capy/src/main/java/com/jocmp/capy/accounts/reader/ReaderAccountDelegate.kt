@@ -362,9 +362,11 @@ internal class ReaderAccountDelegate(
     }
 
     private suspend fun refreshUnreadItems() {
+        val maxLimit = preferences.maxArticles.get().limit
         val ids = fetchAllItemIDs(
             stream = Stream.ReadingList(),
-            excludedStream = Read()
+            excludedStream = Read(),
+            maxItems = maxLimit,
         )
         articleRecords.markAllUnread(articleIDs = ids)
     }
@@ -392,7 +394,8 @@ internal class ReaderAccountDelegate(
         } else {
             refreshArticleState()
 
-            val ids = fetchAllItemIDs(stream = stream)
+            val maxLimit = preferences.maxArticles.get().limit
+            val ids = fetchAllItemIDs(stream = stream, maxItems = maxLimit)
             articleRecords.createStatuses(articleIDs = ids)
 
             fetchMissingArticles()
@@ -402,6 +405,7 @@ internal class ReaderAccountDelegate(
     private suspend fun fetchAllItemIDs(
         stream: Stream,
         excludedStream: Stream? = null,
+        maxItems: Long? = null,
     ): List<String> {
         val allIDs = mutableListOf<String>()
         var continuation: String? = null
@@ -426,9 +430,13 @@ internal class ReaderAccountDelegate(
 
             allIDs.addAll(result.itemRefs.map { it.hexID })
             continuation = result.continuation
+
+            if (maxItems != null && allIDs.size >= maxItems) {
+                break
+            }
         } while (continuation != null)
 
-        return allIDs
+        return if (maxItems != null) allIDs.take(maxItems.toInt()) else allIDs
     }
 
     private suspend fun fetchMissingArticles() {

@@ -580,8 +580,15 @@ class ArticleScreenViewModel(
             return
         }
 
-        markReadJob?.cancel()
+        val previousID = pendingMarkReadArticleID
+        if (previousID != null && previousID != articleID) {
+            markReadJob?.cancel()
+            viewModelScope.launchIO {
+                markRead(previousID)
+            }
+        }
         pendingMarkReadArticleID = null
+        markReadJob = null
 
         viewModelScope.launchIO {
             val article = buildArticle(articleID) ?: return@launchIO
@@ -662,7 +669,13 @@ class ArticleScreenViewModel(
     }
 
     fun clearArticle() {
-        markReadJob?.cancel()
+        val previousID = pendingMarkReadArticleID
+        if (previousID != null) {
+            markReadJob?.cancel()
+            viewModelScope.launchIO {
+                markRead(previousID)
+            }
+        }
         markReadJob = null
         pendingMarkReadArticleID = null
         _article = null

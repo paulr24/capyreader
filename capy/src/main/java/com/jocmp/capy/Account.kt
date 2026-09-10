@@ -235,6 +235,8 @@ data class Account(
                 articleRecords.deleteOrphanedStatuses(before = cutoffDate)
             }
 
+            pruneExcessArticles()
+
             result
         } catch (e: Throwable) {
             CapyLog.error("refresh", e)
@@ -495,6 +497,13 @@ data class Account(
 
     suspend fun clearAllArticles() {
         articleRecords.deleteAllArticles()
+    }
+
+    suspend fun pruneExcessArticles() {
+        val maxArticles = preferences.maxArticles.get().limit ?: return
+        withIOContext {
+            articleRecords.pruneExcessUnreadArticles(maxArticles)
+        }
     }
 
     suspend fun clearStickyFullContent() {

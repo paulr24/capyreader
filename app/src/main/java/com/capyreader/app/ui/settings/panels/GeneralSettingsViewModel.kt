@@ -11,6 +11,7 @@ import com.capyreader.app.refresher.RefreshInterval
 import com.capyreader.app.refresher.RefreshScheduler
 import com.jocmp.capy.Account
 import com.jocmp.capy.accounts.AutoDelete
+import com.jocmp.capy.accounts.MaxArticles
 import com.jocmp.capy.articles.SortOrder
 import com.jocmp.capy.preferences.getAndSet
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +29,9 @@ class GeneralSettingsViewModel(
         private set
 
     var autoDelete by mutableStateOf(account.preferences.autoDelete.get())
+        private set
+
+    var maxArticles by mutableStateOf(account.preferences.maxArticles.get())
         private set
 
     var canOpenLinksInternally by mutableStateOf(appPreferences.openLinksInternally.get())
@@ -77,6 +81,16 @@ class GeneralSettingsViewModel(
         account.preferences.autoDelete.set(autoDelete)
 
         this.autoDelete = autoDelete
+    }
+
+    fun updateMaxArticles(maxArticles: MaxArticles) {
+        account.preferences.maxArticles.set(maxArticles)
+
+        this.maxArticles = maxArticles
+
+        viewModelScope.launch(Dispatchers.IO) {
+            account.pruneExcessArticles()
+        }
     }
 
     fun updateOpenLinksInternally(openLinksInternally: Boolean) {

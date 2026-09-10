@@ -254,7 +254,7 @@ class ArticleScreenViewModelTest {
     }
 
     @Test
-    fun `selectArticle cancels previous pending mark read when new article selected`() = runTest {
+    fun `selectArticle commits previous pending mark read when new article selected`() = runTest {
         val article1 = createArticle(id = "1", read = false)
         val article2 = createArticle(id = "2", read = false)
         coEvery { account.findArticle("1") } returns article1
@@ -264,11 +264,12 @@ class ArticleScreenViewModelTest {
         viewModel.selectArticle("1")
 
         testScheduler.advanceTimeBy(2000)
-        viewModel.selectArticle("2")
-
-        testScheduler.advanceTimeBy(5000)
         coVerify(exactly = 0) { account.markRead("1") }
-        coVerify(exactly = 1) { account.markRead("2") }
+
+        viewModel.selectArticle("2")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { account.markRead("1") }
     }
 
     @Test
@@ -288,7 +289,7 @@ class ArticleScreenViewModelTest {
     }
 
     @Test
-    fun `clearArticle cancels pending mark read`() = runTest {
+    fun `clearArticle commits pending mark read`() = runTest {
         val article = createArticle(id = "1", read = false)
         coEvery { account.findArticle("1") } returns article
 
@@ -297,9 +298,9 @@ class ArticleScreenViewModelTest {
 
         testScheduler.advanceTimeBy(2000)
         viewModel.clearArticle()
+        advanceUntilIdle()
 
-        testScheduler.advanceTimeBy(5000)
-        coVerify(exactly = 0) { account.markRead("1") }
+        coVerify(exactly = 1) { account.markRead("1") }
     }
 
     private fun createArticle(id: String, read: Boolean = false): Article {
