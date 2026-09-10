@@ -12,8 +12,10 @@ import com.jocmp.capy.ArticleFilter
 import com.jocmp.capy.ArticleStatus
 import com.jocmp.capy.Feed
 import com.jocmp.capy.Folder
+import com.jocmp.capy.Article
 import com.jocmp.capy.accounts.Source
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import java.time.ZonedDateTime
@@ -220,6 +222,100 @@ class ArticleScreenViewModelTest {
         assertEquals(
             ArticleFilter.Folders(folderTitle = "Y", folderStatus = ArticleStatus.UNREAD),
             appPreferences.filter.get()
+        )
+    }
+
+    @Test
+    fun `selectArticle does not immediately mark unread article as read`() = runTest {
+        val article = createArticle(id = "1", read = false)
+        coEvery { account.findArticle("1") } returns article
+
+        val viewModel = buildViewModel()
+        viewModel.selectArticle("1")
+
+        testScheduler.advanceTimeBy(1000)
+        coVerify(exactly = 0) { account.markRead("1") }
+    }
+
+    @Test
+    fun `selectArticle marks unread article as read after 5 seconds`() = runTest {
+        val article = createArticle(id = "1", read = false)
+        coEvery { account.findArticle("1") } returns article
+
+        val viewModel = buildViewModel()
+        viewModel.selectArticle("1")
+
+        testScheduler.advanceTimeBy(4900)
+        coVerify(exactly = 0) { account.markRead("1") }
+
+        testScheduler.advanceTimeBy(200)
+        coVerify(exactly = 1) { account.markRead("1") }
+        assertEquals(true, viewModel.article?.read)
+    }
+
+    @Test
+    fun `selectArticle cancels previous pending mark read when new article selected`() = runTest {
+        val article1 = createArticle(id = "1", read = false)
+        val article2 = createArticle(id = "2", read = false)
+        coEvery { account.findArticle("1") } returns article1
+        coEvery { account.findArticle("2") } returns article2
+
+        val viewModel = buildViewModel()
+        viewModel.selectArticle("1")
+
+        testScheduler.advanceTimeBy(2000)
+        viewModel.selectArticle("2")
+
+        testScheduler.advanceTimeBy(5000)
+        coVerify(exactly = 0) { account.markRead("1") }
+        coVerify(exactly = 1) { account.markRead("2") }
+    }
+
+    @Test
+    fun `flushPendingMarkRead marks pending article as read immediately`() = runTest {
+        val article = createArticle(id = "1", read = false)
+        coEvery { account.findArticle("1") } returns article
+
+        val viewModel = buildViewModel()
+        viewModel.selectArticle("1")
+
+        testScheduler.advanceTimeBy(1000)
+        viewModel.flushPendingMarkRead()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { account.markRead("1") }
+        assertEquals(true, viewModel.article?.read)
+    }
+
+    @Test
+    fun `clearArticle cancels pending mark read`() = runTest {
+        val article = createArticle(id = "1", read = false)
+        coEvery { account.findArticle("1") } returns article
+
+        val viewModel = buildViewModel()
+        viewModel.selectArticle("1")
+
+        testScheduler.advanceTimeBy(2000)
+        viewModel.clearArticle()
+
+        testScheduler.advanceTimeBy(5000)
+        coVerify(exactly = 0) { account.markRead("1") }
+    }
+
+    private fun createArticle(id: String, read: Boolean = false): Article {
+        return Article(
+            id = id,
+            feedID = "feed-1",
+            title = "Test Article Title",
+            author = "Author",
+            contentHTML = "<p>content</p>",
+            url = null,
+            summary = "",
+            imageURL = null,
+            updatedAt = ZonedDateTime.now(),
+            publishedAt = ZonedDateTime.now(),
+            read = read,
+            starred = false,
         )
     }
 

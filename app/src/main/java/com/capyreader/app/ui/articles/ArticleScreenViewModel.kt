@@ -53,6 +53,7 @@ import kotlinx.coroutines.launch
 import java.time.OffsetDateTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ArticleScreenViewModel(
@@ -66,6 +67,10 @@ class ArticleScreenViewModel(
     private var refreshJob: Job? = null
 
     private var fullContentJob: Job? = null
+
+    private var markReadJob: Job? = null
+
+    private var pendingMarkReadArticleID: String? = null
 
     var refreshSkipReason by mutableStateOf<RefreshSkipReason?>(null)
         private set
@@ -575,12 +580,23 @@ class ArticleScreenViewModel(
             return
         }
 
+        markReadJob?.cancel()
+        pendingMarkReadArticleID = null
+
         viewModelScope.launchIO {
             val article = buildArticle(articleID) ?: return@launchIO
             _article = article
 
-            launchIO {
-                markRead(articleID)
+            if (!article.read) {
+                pendingMarkReadArticleID = articleID
+                markReadJob = viewModelScope.launchIO {
+                    delay(MARK_READ_DELAY)
+                    markRead(articleID)
+                    pendingMarkReadArticleID = null
+                    if (_article?.id == articleID) {
+                        _article = _article?.copy(read = true)
+                    }
+                }
             }
 
             launchUI {
@@ -595,8 +611,26 @@ class ArticleScreenViewModel(
         }
     }
 
+    fun flushPendingMarkRead() {
+        val articleID = pendingMarkReadArticleID ?: return
+        markReadJob?.cancel()
+        markReadJob = null
+        pendingMarkReadArticleID = null
+
+        viewModelScope.launchIO {
+            markRead(articleID)
+            if (_article?.id == articleID) {
+                _article = _article?.copy(read = true)
+            }
+        }
+    }
+
     fun toggleArticleRead() {
         _article?.let { article ->
+            markReadJob?.cancel()
+            markReadJob = null
+            pendingMarkReadArticleID = null
+
             viewModelScope.launch {
                 if (article.read) {
                     markUnread(article.id)
@@ -628,6 +662,9 @@ class ArticleScreenViewModel(
     }
 
     fun clearArticle() {
+        markReadJob?.cancel()
+        markReadJob = null
+        pendingMarkReadArticleID = null
         _article = null
     }
 
@@ -661,11 +698,21 @@ class ArticleScreenViewModel(
     }
 
     fun markReadAsync(articleID: String) = viewModelScope.launchIO {
+        if (pendingMarkReadArticleID == articleID) {
+            markReadJob?.cancel()
+            markReadJob = null
+            pendingMarkReadArticleID = null
+        }
         toggleCurrentRead(articleID)
         markRead(articleID)
     }
 
     fun markUnreadAsync(articleID: String) = viewModelScope.launchIO {
+        if (pendingMarkReadArticleID == articleID) {
+            markReadJob?.cancel()
+            markReadJob = null
+            pendingMarkReadArticleID = null
+        }
         toggleCurrentRead(articleID)
         markUnread(articleID)
     }
@@ -770,7 +817,6 @@ class ArticleScreenViewModel(
         }
 
         return article.copy(
-            read = true,
             content = content,
             fullContent = fullContent
         )
@@ -941,6 +987,7 @@ class ArticleScreenViewModel(
 
     companion object {
         val SYNC_FLUSH_INTERVAL = 2.minutes
+        val MARK_READ_DELAY = 5.seconds
     }
 }
 
