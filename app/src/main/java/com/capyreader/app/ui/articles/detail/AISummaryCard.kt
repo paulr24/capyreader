@@ -57,6 +57,7 @@ import com.capyreader.app.ai.ArticleSummaryRepository
 import com.capyreader.app.common.AudioEnclosure
 import com.capyreader.app.preferences.AppPreferences
 import com.capyreader.app.ui.components.LocalSnackbarHost
+import com.capyreader.app.ui.components.MarkdownFormatter
 import com.capyreader.app.ui.components.buildCopyToClipboard
 import com.jocmp.capy.Article
 import kotlinx.coroutines.launch
@@ -281,7 +282,8 @@ fun AISummaryCard(
                                         showAudioMenu = false
                                         val text = summaryText
                                         if (!text.isNullOrBlank()) {
-                                            playAudioForText(text, "Summary: ${article.title}")
+                                            val speechText = MarkdownFormatter.cleanMarkdownForSpeech(text)
+                                            playAudioForText(speechText, "Summary: ${article.title}")
                                         }
                                     }
                                 )
@@ -397,15 +399,18 @@ fun AISummaryCard(
                         }
 
                         !summaryText.isNullOrBlank() -> {
-                            val text = summaryText.orEmpty()
-                            val copyToClipboard = buildCopyToClipboard(text)
+                            val rawText = summaryText.orEmpty()
+                            val formattedText = remember(rawText) {
+                                MarkdownFormatter.parseMarkdown(rawText)
+                            }
+                            val copyToClipboard = buildCopyToClipboard(formattedText.text)
                             val copiedMessage = stringResource(R.string.ai_summary_copied)
 
                             SelectionContainer {
                                 Text(
-                                    text = text,
+                                    text = formattedText,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.3f,
+                                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.35f,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
