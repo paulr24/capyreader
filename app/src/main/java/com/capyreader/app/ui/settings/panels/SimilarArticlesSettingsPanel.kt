@@ -377,13 +377,11 @@ fun SimilarArticlesSettingsPanelView(
                     }
                 }
 
-                if (recentMatches.isNotEmpty()) {
-                    OutlinedButton(
-                        onClick = { onSetMatchesDialogOpen(true) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("${stringResource(R.string.settings_similar_articles_view_matches)} (${recentMatches.size})")
-                    }
+                OutlinedButton(
+                    onClick = { onSetMatchesDialogOpen(true) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("${stringResource(R.string.settings_similar_articles_view_matches)} (${recentMatches.size})")
                 }
             }
         }

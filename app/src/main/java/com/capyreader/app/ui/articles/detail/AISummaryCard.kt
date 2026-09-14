@@ -8,6 +8,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.QuestionAnswer
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -52,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.capyreader.app.R
 import com.capyreader.app.ai.AIAudioService
+import com.capyreader.app.ai.AIChatMessage
 import com.capyreader.app.ai.AISummarizerService
 import com.capyreader.app.ai.ArticleSummaryRepository
 import com.capyreader.app.common.AudioEnclosure
@@ -65,6 +69,7 @@ import kotlinx.coroutines.launch
 import org.jsoup.Jsoup
 import org.koin.compose.koinInject
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AISummaryCard(
     article: Article,
@@ -97,6 +102,8 @@ fun AISummaryCard(
     var summaryText by rememberSaveable(article.id) { mutableStateOf<String?>(null) }
     var errorMessage by rememberSaveable(article.id) { mutableStateOf<String?>(null) }
     var showAudioMenu by remember { mutableStateOf(false) }
+    var isChatOpen by rememberSaveable(article.id) { mutableStateOf(false) }
+    var chatMessages by remember(article.id) { mutableStateOf<List<AIChatMessage>>(emptyList()) }
 
     fun playAudioForText(textToPlay: String, title: String) {
         if (textToPlay.isBlank() || isAudioLoading) return
@@ -424,16 +431,16 @@ fun AISummaryCard(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            Row(
+                            FlowRow(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 if (isGenerating) {
                                     Row(
-                                        modifier = Modifier.weight(1f),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(end = 8.dp)
                                     ) {
                                         CircularProgressIndicator(
                                             modifier = Modifier.size(14.dp),
@@ -445,9 +452,29 @@ fun AISummaryCard(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                } else {
-                                    Spacer(modifier = Modifier.weight(1f))
                                 }
+
+                                OutlinedButton(
+                                    onClick = { isChatOpen = true },
+                                    enabled = !isGenerating
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.QuestionAnswer,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    val qCount = chatMessages.count { it.isUser }
+                                    Text(
+                                        if (qCount > 0) {
+                                            "${stringResource(R.string.ai_summary_ask_question)} ($qCount)"
+                                        } else {
+                                            stringResource(R.string.ai_summary_ask_question)
+                                        }
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(6.dp))
 
                                 OutlinedButton(
                                     onClick = { generateSummary(forceRefresh = true) },
@@ -462,7 +489,7 @@ fun AISummaryCard(
                                     Text(stringResource(R.string.ai_summary_regenerate))
                                 }
 
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
 
                                 Button(
                                     onClick = {
@@ -531,5 +558,17 @@ fun AISummaryCard(
                 }
             }
         }
+    }
+
+    if (isChatOpen) {
+        ArticleChatBottomSheet(
+            article = article,
+            onDismissRequest = { isChatOpen = false },
+            messages = chatMessages,
+            onMessagesChanged = { chatMessages = it },
+            articleFont = articleFont,
+            appPreferences = appPreferences,
+            aiService = aiService,
+        )
     }
 }

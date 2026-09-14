@@ -469,4 +469,14 @@
     <string name="settings_similar_articles_match_removed">Marked read:</string>
     <string name="settings_similar_articles_match_similarity">%1$d%% match</string>
     <string name="settings_similar_articles_clear_log">Clear Log</string>
+
+    <!-- AI Article Q&A -->
+    <string name="ai_summary_ask_question">Ask Question</string>
+    <string name="ai_chat_bottom_sheet_title">Ask About Article</string>
+    <string name="ai_chat_input_hint">Ask a question about this article…</string>
+    <string name="ai_chat_send">Send</string>
+    <string name="ai_chat_answering">Thinking…</string>
+    <string name="ai_chat_empty_prompt">Have questions about this article? Ask anything and the AI will answer based on the article\'s contents.</string>
+    <string name="ai_chat_clear">Clear Chat</string>
+    <string name="ai_chat_copied">Answer copied to clipboard</string>
 </resources>

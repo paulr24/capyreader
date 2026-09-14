@@ -58,6 +58,41 @@ class AISummarizerService(
         }
     }.flowOn(Dispatchers.IO)
 
+    fun askQuestionStream(
+        article: Article,
+        question: String,
+        history: List<AIChatMessage> = emptyList(),
+    ): Flow<String> = flow {
+        val provider = aiOptions.provider.get()
+        val rawContent = article.content.ifBlank { article.summary }
+        val cleanContent = extractCleanText(rawContent)
+
+        if (cleanContent.isBlank()) {
+            throw IllegalStateException("Article content is empty")
+        }
+
+        when (provider) {
+            AIProvider.GEMINI -> streamGeminiQuestion(
+                articleTitle = article.title,
+                articleContent = cleanContent,
+                question = question,
+                history = history,
+                model = aiOptions.geminiModel.get(),
+                apiKey = aiOptions.geminiApiKey.get()
+            ) { chunk -> emit(chunk) }
+
+            AIProvider.OPENAI_COMPATIBLE -> streamOpenAIQuestion(
+                articleTitle = article.title,
+                articleContent = cleanContent,
+                question = question,
+                history = history,
+                endpoint = aiOptions.openAiEndpoint.get(),
+                model = aiOptions.openAiModel.get(),
+                apiKey = aiOptions.openAiApiKey.get()
+            ) { chunk -> emit(chunk) }
+        }
+    }.flowOn(Dispatchers.IO)
+
     suspend fun summarize(article: Article): Result<String> = withContext(Dispatchers.IO) {
         try {
             val provider = aiOptions.provider.get()
@@ -169,12 +204,75 @@ class AISummarizerService(
         apiKey: String,
         onChunk: (String) -> Unit,
     ) {
+        executeGeminiStream(buildGeminiRequestBody(prompt), model, apiKey, onChunk)
+    }
+
+    private inline fun streamGeminiQuestion(
+        articleTitle: String,
+        articleContent: String,
+        question: String,
+        history: List<AIChatMessage>,
+        model: String,
+        apiKey: String,
+        onChunk: (String) -> Unit,
+    ) {
+        val contentsArray = JSONArray()
+
+        if (history.isEmpty()) {
+            val prompt = "You are a helpful reading assistant answering questions about the following article.\n\nArticle Title: $articleTitle\n\nArticle Content:\n$articleContent\n\nQuestion: $question\n\nPlease answer accurately, clearly, and concisely based strictly on the article's text. If the answer is not mentioned in the article, state that clearly."
+            contentsArray.put(JSONObject().apply {
+                put("role", "user")
+                put("parts", JSONArray().apply {
+                    put(JSONObject().apply { put("text", prompt) })
+                })
+            })
+        } else {
+            history.forEachIndexed { index, msg ->
+                val text = if (index == 0) {
+                    "You are a helpful reading assistant answering questions about the following article.\n\nArticle Title: $articleTitle\n\nArticle Content:\n$articleContent\n\nQuestion: ${msg.text}\n\nPlease answer accurately, clearly, and concisely based strictly on the article's text. If the answer is not mentioned in the article, state that clearly."
+                } else {
+                    msg.text
+                }
+                contentsArray.put(JSONObject().apply {
+                    put("role", if (msg.isUser) "user" else "model")
+                    put("parts", JSONArray().apply {
+                        put(JSONObject().apply { put("text", text) })
+                    })
+                })
+            }
+            contentsArray.put(JSONObject().apply {
+                put("role", "user")
+                put("parts", JSONArray().apply {
+                    put(JSONObject().apply { put("text", question) })
+                })
+            })
+        }
+
+        val generationConfig = JSONObject().apply {
+            put("temperature", 0.3)
+            put("maxOutputTokens", 1200)
+        }
+
+        val requestJson = JSONObject().apply {
+            put("contents", contentsArray)
+            put("generationConfig", generationConfig)
+        }.toString()
+
+        executeGeminiStream(requestJson, model, apiKey, onChunk)
+    }
+
+    private inline fun executeGeminiStream(
+        requestJson: String,
+        model: String,
+        apiKey: String,
+        onChunk: (String) -> Unit,
+    ) {
         if (apiKey.isBlank()) {
             throw IllegalArgumentException("Gemini API key is not configured")
         }
 
         val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:streamGenerateContent?alt=sse&key=$apiKey"
-        val requestBody = buildGeminiRequestBody(prompt).toRequestBody(JSON_MEDIA_TYPE)
+        val requestBody = requestJson.toRequestBody(JSON_MEDIA_TYPE)
         val request = Request.Builder()
             .url(url)
             .post(requestBody)
@@ -222,17 +320,6 @@ class AISummarizerService(
         apiKey: String,
         onChunk: (String) -> Unit,
     ) {
-        if (apiKey.isBlank()) {
-            throw IllegalArgumentException("API key is not configured")
-        }
-
-        val baseUrl = endpoint.trim().trimEnd('/')
-        val url = if (baseUrl.endsWith("/chat/completions")) {
-            baseUrl
-        } else {
-            "$baseUrl/chat/completions"
-        }
-
         val messageObject = JSONObject().apply {
             put("role", "user")
             put("content", prompt)
@@ -247,9 +334,67 @@ class AISummarizerService(
             put("temperature", 0.3)
             put("max_tokens", 800)
             put("stream", true)
+        }.toString()
+
+        executeOpenAIStream(requestJson, endpoint, apiKey, onChunk)
+    }
+
+    private inline fun streamOpenAIQuestion(
+        articleTitle: String,
+        articleContent: String,
+        question: String,
+        history: List<AIChatMessage>,
+        endpoint: String,
+        model: String,
+        apiKey: String,
+        onChunk: (String) -> Unit,
+    ) {
+        val messagesArray = JSONArray().apply {
+            put(JSONObject().apply {
+                put("role", "system")
+                put("content", "You are a helpful reading assistant answering questions about the following article.\n\nArticle Title: $articleTitle\n\nArticle Content:\n$articleContent\n\nPlease answer accurately, clearly, and concisely based strictly on the article's text. If the answer is not mentioned in the article, state that clearly.")
+            })
+            history.forEach { msg ->
+                put(JSONObject().apply {
+                    put("role", if (msg.isUser) "user" else "assistant")
+                    put("content", msg.text)
+                })
+            }
+            put(JSONObject().apply {
+                put("role", "user")
+                put("content", question)
+            })
         }
 
-        val requestBody = requestJson.toString().toRequestBody(JSON_MEDIA_TYPE)
+        val requestJson = JSONObject().apply {
+            put("model", model)
+            put("messages", messagesArray)
+            put("temperature", 0.3)
+            put("max_tokens", 1200)
+            put("stream", true)
+        }.toString()
+
+        executeOpenAIStream(requestJson, endpoint, apiKey, onChunk)
+    }
+
+    private inline fun executeOpenAIStream(
+        requestJson: String,
+        endpoint: String,
+        apiKey: String,
+        onChunk: (String) -> Unit,
+    ) {
+        if (apiKey.isBlank()) {
+            throw IllegalArgumentException("API key is not configured")
+        }
+
+        val baseUrl = endpoint.trim().trimEnd('/')
+        val url = if (baseUrl.endsWith("/chat/completions")) {
+            baseUrl
+        } else {
+            "$baseUrl/chat/completions"
+        }
+
+        val requestBody = requestJson.toRequestBody(JSON_MEDIA_TYPE)
         val request = Request.Builder()
             .url(url)
             .addHeader("Authorization", "Bearer $apiKey")
