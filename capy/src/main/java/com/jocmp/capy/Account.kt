@@ -18,6 +18,7 @@ import com.jocmp.capy.accounts.miniflux.MinifluxAccountDelegate
 import com.jocmp.capy.accounts.reader.buildReaderDelegate
 import com.jocmp.capy.articles.ArticleContent
 import com.jocmp.capy.articles.SortOrder
+import com.jocmp.capy.articles.similarity.ArticleDeduplicator
 import com.jocmp.capy.common.TimeHelpers.nowUTC
 import com.jocmp.capy.common.sortedByName
 import com.jocmp.capy.common.sortedByTitle
@@ -236,6 +237,10 @@ data class Account(
             }
 
             pruneExcessArticles()
+
+            if (preferences.deduplicationEnabled.get()) {
+                deduplicateArticles()
+            }
 
             result
         } catch (e: Throwable) {
@@ -503,6 +508,34 @@ data class Account(
         val maxArticles = preferences.maxArticles.get().limit ?: return
         withIOContext {
             articleRecords.pruneExcessUnreadArticles(maxArticles)
+        }
+    }
+
+    suspend fun deduplicateArticles(): Int {
+        return withIOContext {
+            val timeWindowHours = preferences.deduplicationTimeWindowHours.get()
+            val sinceDate = nowUTC().minusHours(timeWindowHours.toLong())
+            val candidates = articleRecords.findUnreadCandidates(since = sinceDate)
+
+            if (candidates.size < 2) return@withIOContext 0
+
+            val threshold = preferences.deduplicationThreshold.get() / 100.0f
+            val bypassWords = preferences.deduplicationBypassWords.get()
+            val preferredFeeds = preferences.preferredFeedIDs.get()
+
+            val duplicates = ArticleDeduplicator.findDuplicates(
+                candidates = candidates,
+                preferredFeedIDs = preferredFeeds,
+                bypassKeywords = bypassWords,
+                similarityThreshold = threshold,
+                timeWindowSeconds = timeWindowHours * 3600L,
+            )
+
+            if (duplicates.isNotEmpty()) {
+                markAllRead(duplicates)
+            }
+
+            duplicates.size
         }
     }
 

@@ -7,6 +7,7 @@ import com.jocmp.capy.common.TimeHelpers
 import com.jocmp.capy.preferences.Preference
 import com.jocmp.capy.preferences.PreferenceStore
 import com.jocmp.capy.preferences.getEnum
+import kotlinx.serialization.json.Json
 
 class AccountPreferences(
     private val store: PreferenceStore,
@@ -40,6 +41,35 @@ class AccountPreferences(
 
     val lastRefreshedAt: Preference<Long>
         get() = store.getLong("last_refreshed_at", 0L)
+
+    val deduplicationEnabled: Preference<Boolean>
+        get() = store.getBoolean("deduplication_enabled", true)
+
+    val deduplicationThreshold: Preference<Int>
+        get() = store.getInt("deduplication_threshold", 90)
+
+    val deduplicationTimeWindowHours: Preference<Int>
+        get() = store.getInt("deduplication_time_window_hours", 48)
+
+    val deduplicationBypassWords: Preference<Set<String>>
+        get() = store.getStringSet(
+            "deduplication_bypass_words",
+            setOf("Review", "Reviews", "Preview", "Impressions")
+        )
+
+    val preferredFeedIDs: Preference<List<String>>
+        get() = store.getObject(
+            key = "preferred_feed_ids",
+            defaultValue = emptyList(),
+            serializer = { Json.encodeToString(it) },
+            deserializer = {
+                try {
+                    Json.decodeFromString<List<String>>(it)
+                } catch (e: Throwable) {
+                    emptyList()
+                }
+            }
+        )
 
     suspend fun touchLastRefreshedAt() {
         lastRefreshedAt.set(TimeHelpers.nowUTC().toEpochSecond())

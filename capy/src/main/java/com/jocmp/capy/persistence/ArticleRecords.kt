@@ -9,6 +9,7 @@ import com.jocmp.capy.ArticleNotification
 import com.jocmp.capy.ArticleStatus
 import com.jocmp.capy.FeedPriority
 import com.jocmp.capy.MarkRead
+import com.jocmp.capy.articles.similarity.ArticleCandidate
 import com.jocmp.capy.articles.SortOrder
 import com.jocmp.capy.common.TimeHelpers.nowUTC
 import com.jocmp.capy.common.toDateTimeFromSeconds
@@ -165,6 +166,23 @@ class ArticleRecords(
                 database.articlesQueries.deleteArticlesByID(batchIDs)
             }
         }
+    }
+
+    fun findUnreadCandidates(since: ZonedDateTime? = null): List<ArticleCandidate> {
+        val sinceEpoch = since?.toEpochSecond()
+        return database.articlesQueries
+            .findUnreadCandidates(
+                sinceEpochSeconds = sinceEpoch,
+                mapper = { id, feedID, title, publishedAt ->
+                    ArticleCandidate(
+                        id = id,
+                        feedID = feedID.orEmpty(),
+                        title = title.orEmpty(),
+                        publishedAt = publishedAt ?: 0L,
+                    )
+                }
+            )
+            .executeAsList()
     }
 
     fun markAllUnread(articleIDs: List<String>, updatedAt: ZonedDateTime = nowUTC()) {

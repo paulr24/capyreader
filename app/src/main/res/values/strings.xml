@@ -435,4 +435,31 @@
     <string name="ai_summary_collapse">Collapse</string>
     <string name="ai_summary_expand">Expand</string>
     <string name="ai_summary_close">Close summary</string>
+
+    <!-- Similar Articles / Deduplication -->
+    <string name="settings_similar_articles_title">Similar Articles</string>
+    <string name="settings_similar_articles_subtitle">Mark similar articles across sources as read</string>
+    <string name="settings_similar_articles_enable">Enable Deduplication</string>
+    <string name="settings_similar_articles_enable_subtitle">Automatically detect and mark duplicate articles as read after sync</string>
+    <string name="settings_similar_articles_threshold">Similarity Threshold</string>
+    <string name="settings_similar_articles_threshold_description">Minimum similarity score required to treat articles as duplicates</string>
+    <string name="settings_similar_articles_time_window">Time Window</string>
+    <string name="settings_similar_articles_time_window_description">Only compare articles published within this window</string>
+    <string name="settings_similar_articles_time_window_24h">24 hours</string>
+    <string name="settings_similar_articles_time_window_48h">48 hours</string>
+    <string name="settings_similar_articles_time_window_72h">72 hours</string>
+    <string name="settings_similar_articles_time_window_1w">1 week</string>
+    <string name="settings_similar_articles_preferred_sources">Source Priority</string>
+    <string name="settings_similar_articles_preferred_sources_empty">No preferred sources added yet. When similar articles are detected, the newest version will be kept unread.</string>
+    <string name="settings_similar_articles_preferred_sources_explanation">Rank your favorite sources. When duplicate articles are detected, the highest-ranking source is kept unread while the others are marked as read.</string>
+    <string name="settings_similar_articles_add_preferred_source">Add Preferred Source</string>
+    <string name="settings_similar_articles_choose_source">Select Source</string>
+    <string name="settings_similar_articles_bypass_keywords">Bypass Keywords</string>
+    <string name="settings_similar_articles_bypass_keywords_explanation">Articles with any of these words in their title will never be marked as duplicates (e.g. reviews, impressions, or opinions from different outlets).</string>
+    <string name="settings_similar_articles_add_bypass_keyword">Add keyword</string>
+    <string name="settings_similar_articles_bypass_keyword_hint">e.g. Review</string>
+    <string name="settings_similar_articles_clean_up_now">Clean Up Unread Articles Now</string>
+    <string name="settings_similar_articles_clean_up_running">Scanning unread articles…</string>
+    <string name="settings_similar_articles_clean_up_success_zero">No duplicate articles found</string>
+    <string name="settings_similar_articles_clean_up_success">Marked %1$d duplicate article(s) as read</string>
 </resources>

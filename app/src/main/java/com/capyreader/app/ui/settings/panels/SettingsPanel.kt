@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Build
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Gesture
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Notifications
@@ -64,6 +65,11 @@ sealed class SettingsPanel(@StringRes val title: Int) {
     @Parcelize
     data object AI : SettingsPanel(title = R.string.settings_panel_ai_title), Parcelable {
         override fun icon() = Icons.Rounded.AutoAwesome
+    }
+
+    @Parcelize
+    data object SimilarArticles : SettingsPanel(title = R.string.settings_similar_articles_title), Parcelable {
+        override fun icon() = Icons.Rounded.ContentCopy
     }
 
     fun isNested() = !items.contains(this)

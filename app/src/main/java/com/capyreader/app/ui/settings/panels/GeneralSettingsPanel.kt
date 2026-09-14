@@ -70,6 +70,7 @@ import java.lang.String.CASE_INSENSITIVE_ORDER
 fun GeneralSettingsPanel(
     viewModel: GeneralSettingsViewModel = koinViewModel(),
     onNavigateToNotifications: () -> Unit,
+    onNavigateToSimilarArticles: () -> Unit = {},
 ) {
     val keywords by viewModel.filterKeywords.collectAsStateWithLifecycle()
 
@@ -85,6 +86,7 @@ fun GeneralSettingsPanel(
         GeneralSettingsPanelView(
             source = viewModel.source,
             onNavigateToNotifications = onNavigateToNotifications,
+            onNavigateToSimilarArticles = onNavigateToSimilarArticles,
             refreshInterval = viewModel.refreshInterval,
             updateRefreshInterval = viewModel::updateRefreshInterval,
             refreshOnWiFiOnly = viewModel.refreshOnWiFiOnly,
@@ -116,6 +118,7 @@ fun GeneralSettingsPanel(
 fun GeneralSettingsPanelView(
     source: Source,
     onNavigateToNotifications: () -> Unit,
+    onNavigateToSimilarArticles: () -> Unit = {},
     onClearArticles: () -> Unit,
     refreshInterval: RefreshInterval,
     updateRefreshInterval: (RefreshInterval) -> Unit,
@@ -217,6 +220,13 @@ fun GeneralSettingsPanelView(
                     )
                 }
             }
+        }
+
+        FormSection(title = stringResource(R.string.settings_similar_articles_title)) {
+            SettingsDisclosureRow(
+                title = stringResource(R.string.settings_similar_articles_title),
+                onClick = onNavigateToSimilarArticles,
+            )
         }
 
         FormSection(
