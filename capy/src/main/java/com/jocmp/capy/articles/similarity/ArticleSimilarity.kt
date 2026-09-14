@@ -24,6 +24,17 @@ object ArticleSimilarity {
     private val BRAND_SUFFIX_REGEX = Regex("""(?:\s+[-–—|•/]\s+[^–—|-|•/]+$)|(?:^\[[^\]]+\]\s*)""", RegexOption.IGNORE_CASE)
     private val NON_ALPHANUMERIC_REGEX = Regex("""[^a-z0-9\s]""")
     private val MULTI_SPACE_REGEX = Regex("""\s+""")
+    private val NUMBER_ORDINAL_REGEX = Regex("""\b\d+(?:st|nd|rd|th)?\b""", RegexOption.IGNORE_CASE)
+
+    private val MONTHS = setOf(
+        "january", "february", "march", "april", "june",
+        "july", "august", "september", "october", "november", "december",
+        "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec"
+    )
+
+    private val DAYS_OF_WEEK = setOf(
+        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
+    )
 
     /**
      * Calculates the overall similarity between two article titles.
@@ -32,6 +43,10 @@ object ArticleSimilarity {
     fun calculateTitleSimilarity(titleA: String, titleB: String): Float {
         if (titleA.isBlank() || titleB.isBlank()) return 0.0f
         if (titleA.equals(titleB, ignoreCase = true)) return 1.0f
+
+        if (hasConflictingNumbers(titleA, titleB) || hasConflictingDates(titleA, titleB)) {
+            return 0.0f
+        }
 
         val normA = normalize(titleA)
         val normB = normalize(titleB)
@@ -49,6 +64,47 @@ object ArticleSimilarity {
         }
 
         return maxOf(score1, score2)
+    }
+
+    fun extractNumbers(text: String): Set<String> {
+        return NUMBER_ORDINAL_REGEX.findAll(text.lowercase())
+            .map { match ->
+                match.value.replace(Regex("""(?:st|nd|rd|th)$"""), "")
+            }
+            .filter { it.isNotBlank() }
+            .toSet()
+    }
+
+    fun hasConflictingNumbers(titleA: String, titleB: String): Boolean {
+        val numsA = extractNumbers(titleA)
+        val numsB = extractNumbers(titleB)
+        if (numsA.isEmpty() || numsB.isEmpty()) return false
+        val uniqueToA = numsA - numsB
+        val uniqueToB = numsB - numsA
+        return uniqueToA.isNotEmpty() && uniqueToB.isNotEmpty()
+    }
+
+    fun hasConflictingDates(titleA: String, titleB: String): Boolean {
+        val tokensA = tokenize(titleA)
+        val tokensB = tokenize(titleB)
+
+        val monthsA = tokensA.filter { MONTHS.contains(it) }.toSet()
+        val monthsB = tokensB.filter { MONTHS.contains(it) }.toSet()
+        if (monthsA.isNotEmpty() && monthsB.isNotEmpty()) {
+            if ((monthsA - monthsB).isNotEmpty() && (monthsB - monthsA).isNotEmpty()) {
+                return true
+            }
+        }
+
+        val daysA = tokensA.filter { DAYS_OF_WEEK.contains(it) }.toSet()
+        val daysB = tokensB.filter { DAYS_OF_WEEK.contains(it) }.toSet()
+        if (daysA.isNotEmpty() && daysB.isNotEmpty()) {
+            if ((daysA - daysB).isNotEmpty() && (daysB - daysA).isNotEmpty()) {
+                return true
+            }
+        }
+
+        return false
     }
 
     /**
@@ -130,8 +186,8 @@ object ArticleSimilarity {
         return text.replace(BRAND_SUFFIX_REGEX, "").trim()
     }
 
-    private fun tokenize(text: String): Set<String> {
-        return text.split(" ")
+    fun tokenize(text: String): Set<String> {
+        return normalize(text).split(" ")
             .map { it.trim() }
             .filter { it.length > 1 && !STOP_WORDS.contains(it) }
             .toSet()

@@ -164,4 +164,33 @@ class ArticleDeduplicatorTest {
         assertEquals(2, result.matches.size)
         assertTrue(result.matches.all { it.keptArticleId == "art-2" })
     }
+
+    @Test
+    fun `articles from the same feed are never deduplicated against each other`() {
+        val now = 100_000L
+        val candidates = listOf(
+            ArticleCandidate(
+                id = "art-edition-1",
+                feedID = "feed-same",
+                title = "Daily Newsletter Issue One",
+                publishedAt = now,
+                feedTitle = "Newsletter"
+            ),
+            ArticleCandidate(
+                id = "art-edition-2",
+                feedID = "feed-same",
+                title = "Daily Newsletter Issue One",
+                publishedAt = now - 600,
+                feedTitle = "Newsletter"
+            )
+        )
+
+        val result = ArticleDeduplicator.findDuplicates(
+            candidates = candidates,
+            similarityThreshold = 0.50f,
+        )
+
+        assertTrue(result.duplicateIDs.isEmpty(), "Articles from same feed should never be removed")
+        assertTrue(result.matches.isEmpty())
+    }
 }

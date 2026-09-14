@@ -425,10 +425,12 @@ private fun FeedHealthItem(
     feed: FeedHealthStats,
     onUnsubscribe: () -> Unit,
 ) {
-    val lastReadText = when (val days = feed.daysSinceLastRead()) {
-        null -> stringResource(R.string.settings_feed_health_last_read_never)
-        0L -> stringResource(R.string.settings_feed_health_last_read_today)
-        else -> stringResource(R.string.settings_feed_health_last_read_days, days)
+    val lastReadText = when {
+        feed.readArticles == 0L -> stringResource(R.string.settings_feed_health_last_read_never)
+        else -> when (val days = feed.daysSinceLastRead()) {
+            null, 0L -> stringResource(R.string.settings_feed_health_last_read_today)
+            else -> stringResource(R.string.settings_feed_health_last_read_days, days)
+        }
     }
 
     Row(

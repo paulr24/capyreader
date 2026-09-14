@@ -51,6 +51,7 @@ data class FeedHealthStats(
     }
 
     fun daysSinceLastRead(nowEpochSeconds: Long = System.currentTimeMillis() / 1000L): Long? {
+        if (readArticles == 0L) return null
         val lastRead = lastReadAt ?: return null
         return ((nowEpochSeconds - lastRead) / 86400L).coerceAtLeast(0L)
     }

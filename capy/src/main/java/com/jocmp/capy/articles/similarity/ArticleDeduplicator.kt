@@ -73,6 +73,11 @@ object ArticleDeduplicator {
                     continue
                 }
 
+                // Articles from the exact same feed should not deduplicate each other
+                if (a.feedID == b.feedID) {
+                    continue
+                }
+
                 // Fast length filter: if lengths diverge widely, they cannot meet high threshold
                 val lenA = a.title.length
                 val lenB = b.title.length

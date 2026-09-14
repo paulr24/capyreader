@@ -101,8 +101,8 @@ class FeedHealthSettingsViewModel(
                 FeedSortOrder.HIGHEST_VOLUME -> stats.sortedByDescending { it.weeklyVolume }
                 FeedSortOrder.MOST_DORMANT -> stats.sortedWith(
                     compareByDescending<FeedHealthStats> {
-                        it.daysSinceLastRead() ?: Long.MAX_VALUE
-                    }
+                        if (it.readArticles == 0L) Long.MAX_VALUE else (it.daysSinceLastRead() ?: 0L)
+                    }.thenBy { it.readRate }
                 )
                 FeedSortOrder.HIGHEST_READ_PERCENTAGE -> stats.sortedByDescending { it.readRate }
                 FeedSortOrder.ALPHABETICAL -> stats.sortedBy { it.title.lowercase() }
