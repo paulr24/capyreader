@@ -11,6 +11,7 @@ import com.jocmp.capy.FeedPriority
 import com.jocmp.capy.MarkRead
 import com.jocmp.capy.articles.similarity.ArticleCandidate
 import com.jocmp.capy.articles.SortOrder
+import com.jocmp.capy.stats.FeedHealthStats
 import com.jocmp.capy.common.TimeHelpers.nowUTC
 import com.jocmp.capy.common.toDateTimeFromSeconds
 import com.jocmp.capy.common.transactionWithErrorHandling
@@ -180,6 +181,29 @@ class ArticleRecords(
                         title = title.orEmpty(),
                         publishedAt = publishedAt ?: 0L,
                         feedTitle = feedTitle,
+                    )
+                }
+            )
+            .executeAsList()
+    }
+
+    fun feedStatistics(): List<FeedHealthStats> {
+        return database.articlesQueries
+            .feedStatistics(
+                mapper = { feedID, feedTitle, feedURL, siteURL, faviconURL, totalArticles, readArticles, unreadArticles, starredArticles, mostRecentArticleAt, oldestArticleAt, lastReadAt ->
+                    FeedHealthStats(
+                        feedID = feedID,
+                        title = feedTitle,
+                        feedURL = feedURL,
+                        siteURL = siteURL,
+                        faviconURL = faviconURL,
+                        totalArticles = totalArticles,
+                        readArticles = readArticles,
+                        unreadArticles = unreadArticles,
+                        starredArticles = starredArticles,
+                        mostRecentArticleAt = mostRecentArticleAt,
+                        oldestArticleAt = oldestArticleAt,
+                        lastReadAt = lastReadAt,
                     )
                 }
             )

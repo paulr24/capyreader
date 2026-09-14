@@ -3,6 +3,7 @@ package com.capyreader.app.ui.settings
 import com.capyreader.app.transfers.OPMLImportWorker
 import com.capyreader.app.ui.settings.panels.AccountSettingsViewModel
 import com.capyreader.app.ui.settings.panels.DisplaySettingsViewModel
+import com.capyreader.app.ui.settings.panels.FeedHealthSettingsViewModel
 import com.capyreader.app.ui.settings.panels.GeneralSettingsViewModel
 import com.capyreader.app.ui.settings.panels.GesturesSettingsViewModel
 import com.capyreader.app.ui.settings.panels.SettingsViewModel
@@ -46,6 +47,11 @@ val settingsModule = module {
     }
     viewModel {
         SimilarArticlesSettingsViewModel(
+            account = get(),
+        )
+    }
+    viewModel {
+        FeedHealthSettingsViewModel(
             account = get(),
         )
     }

@@ -20,6 +20,7 @@ import com.jocmp.capy.articles.ArticleContent
 import com.jocmp.capy.articles.SortOrder
 import com.jocmp.capy.articles.similarity.ArticleDeduplicator
 import com.jocmp.capy.articles.similarity.DeduplicationResult
+import com.jocmp.capy.stats.FeedHealthStats
 import com.jocmp.capy.common.TimeHelpers.nowUTC
 import com.jocmp.capy.common.sortedByName
 import com.jocmp.capy.common.sortedByTitle
@@ -541,6 +542,10 @@ data class Account(
 
             result
         }
+    }
+
+    suspend fun feedStatistics(): List<FeedHealthStats> = withIOContext {
+        articleRecords.feedStatistics()
     }
 
     suspend fun clearStickyFullContent() {

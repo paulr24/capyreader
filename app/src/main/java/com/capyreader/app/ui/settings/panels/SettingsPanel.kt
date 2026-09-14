@@ -4,6 +4,7 @@ import android.os.Parcelable
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.Analytics
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.ContentCopy
@@ -72,6 +73,11 @@ sealed class SettingsPanel(@StringRes val title: Int) {
         override fun icon() = Icons.Rounded.ContentCopy
     }
 
+    @Parcelize
+    data object FeedHealth : SettingsPanel(title = R.string.settings_feed_health_title), Parcelable {
+        override fun icon() = Icons.Rounded.Analytics
+    }
+
     fun isNested() = !items.contains(this)
 
     companion object {
@@ -81,6 +87,7 @@ sealed class SettingsPanel(@StringRes val title: Int) {
                 Display,
                 Gestures,
                 AI,
+                FeedHealth,
                 Account,
                 About,
             )

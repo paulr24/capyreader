@@ -31,6 +31,7 @@ import com.capyreader.app.ui.settings.panels.AboutSettingsPanel
 import com.capyreader.app.ui.settings.panels.AccountSettingsPanel
 import com.capyreader.app.ui.settings.panels.ArticleListSettingsPanel
 import com.capyreader.app.ui.settings.panels.DisplaySettingsPanel
+import com.capyreader.app.ui.settings.panels.FeedHealthSettingsPanel
 import com.capyreader.app.ui.settings.panels.GeneralSettingsPanel
 import com.capyreader.app.ui.settings.panels.GesturesSettingPanel
 import com.capyreader.app.ui.settings.panels.NotificationsSettingsPanel
@@ -159,6 +160,7 @@ fun SettingsView(
                                 )
                                 SettingsPanel.Gestures -> GesturesSettingPanel()
                                 SettingsPanel.AI -> AISettingsPanel()
+                                SettingsPanel.FeedHealth -> FeedHealthSettingsPanel()
                                 SettingsPanel.Account -> AccountSettingsPanel(onRemoveAccount = onRemoveAccount)
                                 SettingsPanel.About -> AboutSettingsPanel()
                                 SettingsPanel.ArticleList -> ArticleListSettingsPanel()

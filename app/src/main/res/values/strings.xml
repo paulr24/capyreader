@@ -479,4 +479,34 @@
     <string name="ai_chat_empty_prompt">Have questions about this article? Ask anything and the AI will answer based on the article\'s contents.</string>
     <string name="ai_chat_clear">Clear Chat</string>
     <string name="ai_chat_copied">Answer copied to clipboard</string>
+
+    <!-- Feed Health & Statistics -->
+    <string name="settings_feed_health_title">Feed Health &amp; Statistics</string>
+    <string name="settings_feed_health_subtitle">Audit reading habits, find inactive feeds, and declutter</string>
+    <string name="settings_feed_health_overview_total_feeds">Total Feeds</string>
+    <string name="settings_feed_health_overview_read_rate">Overall Read Rate</string>
+    <string name="settings_feed_health_overview_prune_candidates">Prune Candidates</string>
+    <string name="settings_feed_health_overview_weekly_volume">Articles / Week</string>
+    <string name="settings_feed_health_recommendations_title">Recommended to Prune</string>
+    <string name="settings_feed_health_recommendations_empty">No feeds flagged for pruning! Your subscriptions are in great health.</string>
+    <string name="settings_feed_health_all_feeds_title">All Feeds</string>
+    <string name="settings_feed_health_sort_lowest_read">Lowest Read %</string>
+    <string name="settings_feed_health_sort_highest_volume">Highest Volume</string>
+    <string name="settings_feed_health_sort_dormant">Most Dormant</string>
+    <string name="settings_feed_health_sort_highest_read">Highest Read %</string>
+    <string name="settings_feed_health_sort_name">Name (A–Z)</string>
+    <string name="settings_feed_health_reason_dead">Dead Feed (No posts in %1$d+ days)</string>
+    <string name="settings_feed_health_reason_dormant">Dormant (%1$d days since last read)</string>
+    <string name="settings_feed_health_reason_dormant_never">Dormant (Never read)</string>
+    <string name="settings_feed_health_reason_firehose">High Noise (%1$d%% read rate, %2$.1f/wk)</string>
+    <string name="settings_feed_health_read_rate_label">%1$d%% read</string>
+    <string name="settings_feed_health_volume_label">%1$.1f/wk</string>
+    <string name="settings_feed_health_last_read_never">Never read</string>
+    <string name="settings_feed_health_last_read_days">%1$d days ago</string>
+    <string name="settings_feed_health_last_read_today">Read today</string>
+    <string name="settings_feed_health_articles_count">%1$d articles</string>
+    <string name="settings_feed_health_unsubscribe">Unsubscribe</string>
+    <string name="settings_feed_health_unsubscribe_confirm_title">Unsubscribe from %1$s?</string>
+    <string name="settings_feed_health_unsubscribe_confirm_message">This will remove the feed and delete all its cached articles from your account.</string>
+    <string name="settings_feed_health_unsubscribe_success">Unsubscribed from %1$s</string>
 </resources>
