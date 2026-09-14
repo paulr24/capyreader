@@ -1,6 +1,5 @@
 package com.capyreader.app.ui.settings.panels
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,7 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -18,7 +19,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -34,8 +34,8 @@ import androidx.compose.material3.InputChip
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,6 +62,7 @@ import com.capyreader.app.ui.components.LocalSnackbarHost
 import com.capyreader.app.ui.components.TextSwitch
 import com.capyreader.app.ui.settings.PreferenceSelect
 import com.jocmp.capy.Feed
+import com.jocmp.capy.articles.similarity.DeduplicationMatch
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -72,9 +73,11 @@ fun SimilarArticlesSettingsPanel(
     val preferredFeeds by viewModel.preferredFeeds.collectAsStateWithLifecycle()
     val availableFeeds by viewModel.availableFeeds.collectAsStateWithLifecycle()
     val bypassWords by viewModel.bypassWords.collectAsStateWithLifecycle()
+    val recentMatches by viewModel.recentMatches.collectAsStateWithLifecycle()
     val snackbarHost = LocalSnackbarHost.current
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    var isMatchesDialogOpen by remember { mutableStateOf(false) }
 
     SimilarArticlesSettingsPanelView(
         enabled = viewModel.enabled,
@@ -92,16 +95,24 @@ fun SimilarArticlesSettingsPanel(
         bypassWords = bypassWords,
         onAddBypassWord = viewModel::addBypassKeyword,
         onRemoveBypassWord = viewModel::removeBypassKeyword,
+        recentMatches = recentMatches,
+        onClearRecentMatches = viewModel::clearRecentMatches,
+        isMatchesDialogOpen = isMatchesDialogOpen,
+        onSetMatchesDialogOpen = { isMatchesDialogOpen = it },
         isCleaningUp = viewModel.isCleaningUp,
         onCleanUpNow = {
-            viewModel.cleanUpNow { count ->
+            viewModel.cleanUpNow { result ->
                 coroutineScope.launch {
+                    val count = result.duplicateIDs.size
                     val message = if (count > 0) {
                         context.getString(R.string.settings_similar_articles_clean_up_success, count)
                     } else {
                         context.getString(R.string.settings_similar_articles_clean_up_success_zero)
                     }
                     snackbarHost.showSnackbar(message)
+                }
+                if (result.matches.isNotEmpty()) {
+                    isMatchesDialogOpen = true
                 }
             }
         }
@@ -126,6 +137,10 @@ fun SimilarArticlesSettingsPanelView(
     bypassWords: Set<String>,
     onAddBypassWord: (String) -> Unit,
     onRemoveBypassWord: (String) -> Unit,
+    recentMatches: List<DeduplicationMatch>,
+    onClearRecentMatches: () -> Unit,
+    isMatchesDialogOpen: Boolean,
+    onSetMatchesDialogOpen: (Boolean) -> Unit,
     isCleaningUp: Boolean,
     onCleanUpNow: () -> Unit,
 ) {
@@ -340,32 +355,34 @@ fun SimilarArticlesSettingsPanelView(
             }
         }
 
-        // Action: Clean Up Unread Articles Now
+        // Action: Clean Up Unread Articles Now & View Results
         FormSection(title = stringResource(R.string.settings_section_mark_all_as_read)) {
-            RowItem {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.Center
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onCleanUpNow,
+                    enabled = !isCleaningUp && enabled,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Button(
-                        onClick = onCleanUpNow,
-                        enabled = !isCleaningUp && enabled,
+                    if (isCleaningUp) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(18.dp)
+                                .padding(end = 8.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text(stringResource(R.string.settings_similar_articles_clean_up_running))
+                    } else {
+                        Text(stringResource(R.string.settings_similar_articles_clean_up_now))
+                    }
+                }
+
+                if (recentMatches.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = { onSetMatchesDialogOpen(true) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        if (isCleaningUp) {
-                            CircularProgressIndicator(
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .padding(end = 8.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Text(stringResource(R.string.settings_similar_articles_clean_up_running))
-                        } else {
-                            Text(stringResource(R.string.settings_similar_articles_clean_up_now))
-                        }
+                        Text("${stringResource(R.string.settings_similar_articles_view_matches)} (${recentMatches.size})")
                     }
                 }
             }
@@ -413,6 +430,137 @@ fun SimilarArticlesSettingsPanelView(
                             .padding(16.dp)
                     ) {
                         TextButton(onClick = { isAddSourceDialogOpen = false }) {
+                            Text(stringResource(R.string.feed_form_cancel))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Dialog for viewing recent deduplication matches
+    if (isMatchesDialogOpen) {
+        Dialog(onDismissRequest = { onSetMatchesDialogOpen(false) }) {
+            DialogCard {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 550.dp)
+                        .padding(bottom = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_similar_articles_matches_dialog_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (recentMatches.isNotEmpty()) {
+                            TextButton(onClick = onClearRecentMatches) {
+                                Text(stringResource(R.string.settings_similar_articles_clear_log))
+                            }
+                        }
+                    }
+                    HorizontalDivider()
+
+                    if (recentMatches.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.settings_similar_articles_matches_empty),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .verticalScroll(rememberScrollState())
+                                .weight(1f, fill = false)
+                                .padding(vertical = 8.dp)
+                        ) {
+                            recentMatches.forEachIndexed { idx, match ->
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.settings_similar_articles_match_kept),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        if (match.similarityPercentage > 0) {
+                                            Text(
+                                                text = stringResource(R.string.settings_similar_articles_match_similarity, match.similarityPercentage),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.outline
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = match.keptArticleTitle,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    if (match.keptFeedTitle.isNotBlank()) {
+                                        Text(
+                                            text = match.keptFeedTitle,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    Text(
+                                        text = stringResource(R.string.settings_similar_articles_match_removed),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                    Text(
+                                        text = match.duplicateArticleTitle,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    if (match.duplicateFeedTitle.isNotBlank()) {
+                                        Text(
+                                            text = match.duplicateFeedTitle,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                    }
+                                }
+                                if (idx < recentMatches.size - 1) {
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider()
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        TextButton(onClick = { onSetMatchesDialogOpen(false) }) {
                             Text(stringResource(R.string.feed_form_cancel))
                         }
                     }

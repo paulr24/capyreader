@@ -5,14 +5,14 @@ import kotlin.math.abs
 object ArticleDeduplicator {
 
     /**
-     * Finds duplicate article IDs that should be marked as read.
+     * Finds duplicate article IDs that should be marked as read along with match details.
      *
      * @param candidates Unread, non-starred articles sorted by publishedAt DESC.
      * @param preferredFeedIDs Ordered list of preferred feed IDs (index 0 has highest priority).
      * @param bypassKeywords Keywords that prevent matching if found in the title.
      * @param similarityThreshold Minimum similarity score [0.0..1.0] to consider articles duplicates.
      * @param timeWindowSeconds Maximum time difference in seconds between two articles.
-     * @return List of article IDs to mark as read.
+     * @return DeduplicationResult containing duplicate IDs and match details.
      */
     fun findDuplicates(
         candidates: List<ArticleCandidate>,
@@ -20,15 +20,15 @@ object ArticleDeduplicator {
         bypassKeywords: Set<String> = emptySet(),
         similarityThreshold: Float = 0.90f,
         timeWindowSeconds: Long = 48 * 3600L,
-    ): List<String> {
-        if (candidates.size < 2) return emptyList()
+    ): DeduplicationResult {
+        if (candidates.size < 2) return DeduplicationResult(emptyList(), emptyList())
 
         // 1. Filter out articles matching bypass keywords
         val eligibleCandidates = candidates.filter { candidate ->
             !ArticleSimilarity.matchesBypassKeywords(candidate.title, bypassKeywords)
         }
 
-        if (eligibleCandidates.size < 2) return emptyList()
+        if (eligibleCandidates.size < 2) return DeduplicationResult(emptyList(), emptyList())
 
         val n = eligibleCandidates.size
         val parent = IntArray(n) { it }
@@ -100,6 +100,7 @@ object ArticleDeduplicator {
 
         // 4. Resolve each cluster: keep the highest priority/newest, mark the rest read
         val duplicatesToMarkRead = mutableListOf<String>()
+        val matches = mutableListOf<DeduplicationMatch>()
 
         fun feedPriority(feedID: String): Int {
             val index = preferredFeedIDs.indexOf(feedID)
@@ -121,12 +122,28 @@ object ArticleDeduplicator {
                     .thenByDescending { it.publishedAt }
             )
 
-            // Winner is sorted[0]; all others are duplicates to mark as read
+            val winner = sorted[0]
             for (k in 1 until sorted.size) {
-                duplicatesToMarkRead.add(sorted[k].id)
+                val duplicate = sorted[k]
+                duplicatesToMarkRead.add(duplicate.id)
+                val simPercent = (ArticleSimilarity.calculateTitleSimilarity(winner.title, duplicate.title) * 100).toInt()
+                matches.add(
+                    DeduplicationMatch(
+                        keptArticleId = winner.id,
+                        keptArticleTitle = winner.title,
+                        keptFeedTitle = winner.feedTitle,
+                        duplicateArticleId = duplicate.id,
+                        duplicateArticleTitle = duplicate.title,
+                        duplicateFeedTitle = duplicate.feedTitle,
+                        similarityPercentage = simPercent,
+                    )
+                )
             }
         }
 
-        return duplicatesToMarkRead
+        return DeduplicationResult(
+            duplicateIDs = duplicatesToMarkRead,
+            matches = matches,
+        )
     }
 }

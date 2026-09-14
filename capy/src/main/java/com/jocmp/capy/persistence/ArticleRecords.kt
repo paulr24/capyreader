@@ -173,12 +173,13 @@ class ArticleRecords(
         return database.articlesQueries
             .findUnreadCandidates(
                 sinceEpochSeconds = sinceEpoch,
-                mapper = { id, feedID, title, publishedAt ->
+                mapper = { id, feedID, title, publishedAt, feedTitle ->
                     ArticleCandidate(
                         id = id,
                         feedID = feedID.orEmpty(),
                         title = title.orEmpty(),
                         publishedAt = publishedAt ?: 0L,
+                        feedTitle = feedTitle,
                     )
                 }
             )

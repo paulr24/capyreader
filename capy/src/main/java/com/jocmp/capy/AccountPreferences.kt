@@ -3,6 +3,7 @@ package com.jocmp.capy
 import com.jocmp.capy.accounts.AutoDelete
 import com.jocmp.capy.accounts.MaxArticles
 import com.jocmp.capy.accounts.Source
+import com.jocmp.capy.articles.similarity.DeduplicationMatch
 import com.jocmp.capy.common.TimeHelpers
 import com.jocmp.capy.preferences.Preference
 import com.jocmp.capy.preferences.PreferenceStore
@@ -65,6 +66,20 @@ class AccountPreferences(
             deserializer = {
                 try {
                     Json.decodeFromString<List<String>>(it)
+                } catch (e: Throwable) {
+                    emptyList()
+                }
+            }
+        )
+
+    val recentDeduplicationMatches: Preference<List<DeduplicationMatch>>
+        get() = store.getObject(
+            key = "recent_deduplication_matches",
+            defaultValue = emptyList(),
+            serializer = { Json.encodeToString(it) },
+            deserializer = {
+                try {
+                    Json.decodeFromString<List<DeduplicationMatch>>(it)
                 } catch (e: Throwable) {
                     emptyList()
                 }

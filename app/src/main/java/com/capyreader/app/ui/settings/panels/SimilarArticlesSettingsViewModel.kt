@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jocmp.capy.Account
 import com.jocmp.capy.Feed
+import com.jocmp.capy.articles.similarity.DeduplicationMatch
+import com.jocmp.capy.articles.similarity.DeduplicationResult
 import com.jocmp.capy.preferences.getAndSet
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -29,6 +31,8 @@ class SimilarArticlesSettingsViewModel(
     val bypassWords = account.preferences.deduplicationBypassWords.stateIn(viewModelScope)
 
     val preferredFeedIDs = account.preferences.preferredFeedIDs.stateIn(viewModelScope)
+
+    val recentMatches = account.preferences.recentDeduplicationMatches.stateIn(viewModelScope)
 
     val allFeeds = account.allFeeds
 
@@ -124,13 +128,17 @@ class SimilarArticlesSettingsViewModel(
         }
     }
 
-    fun cleanUpNow(onResult: (Int) -> Unit) {
+    fun clearRecentMatches() {
+        account.preferences.recentDeduplicationMatches.set(emptyList())
+    }
+
+    fun cleanUpNow(onResult: (DeduplicationResult) -> Unit) {
         if (isCleaningUp) return
         isCleaningUp = true
         viewModelScope.launch {
             try {
-                val count = account.deduplicateArticles()
-                onResult(count)
+                val result = account.deduplicateArticles()
+                onResult(result)
             } finally {
                 isCleaningUp = false
             }

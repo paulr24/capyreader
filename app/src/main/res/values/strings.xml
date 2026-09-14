@@ -462,4 +462,11 @@
     <string name="settings_similar_articles_clean_up_running">Scanning unread articles…</string>
     <string name="settings_similar_articles_clean_up_success_zero">No duplicate articles found</string>
     <string name="settings_similar_articles_clean_up_success">Marked %1$d duplicate article(s) as read</string>
+    <string name="settings_similar_articles_view_matches">View Recent Deduplications</string>
+    <string name="settings_similar_articles_matches_dialog_title">Recent Deduplications</string>
+    <string name="settings_similar_articles_matches_empty">No deduplications logged yet. Tap \"Clean Up Unread Articles Now\" to scan.</string>
+    <string name="settings_similar_articles_match_kept">Kept:</string>
+    <string name="settings_similar_articles_match_removed">Marked read:</string>
+    <string name="settings_similar_articles_match_similarity">%1$d%% match</string>
+    <string name="settings_similar_articles_clear_log">Clear Log</string>
 </resources>

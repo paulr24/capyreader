@@ -5,4 +5,5 @@ data class ArticleCandidate(
     val feedID: String,
     val title: String,
     val publishedAt: Long,
+    val feedTitle: String = "",
 )

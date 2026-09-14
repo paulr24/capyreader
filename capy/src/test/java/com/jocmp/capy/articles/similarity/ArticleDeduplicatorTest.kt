@@ -14,24 +14,31 @@ class ArticleDeduplicatorTest {
                 id = "art-ign",
                 feedID = "feed-ign",
                 title = "Sony announces PS5 Pro for $700",
-                publishedAt = now
+                publishedAt = now,
+                feedTitle = "IGN"
             ),
             ArticleCandidate(
                 id = "art-verge",
                 feedID = "feed-verge",
                 title = "Sony announces PS5 Pro priced at $700",
-                publishedAt = now - 3600 // 1 hour earlier
+                publishedAt = now - 3600, // 1 hour earlier
+                feedTitle = "The Verge"
             )
         )
 
         // With Verge as preferred feed, Verge is kept, IGN is marked as read
-        val duplicates = ArticleDeduplicator.findDuplicates(
+        val result = ArticleDeduplicator.findDuplicates(
             candidates = candidates,
             preferredFeedIDs = listOf("feed-verge", "feed-ign"),
             similarityThreshold = 0.80f,
         )
 
-        assertEquals(listOf("art-ign"), duplicates)
+        assertEquals(listOf("art-ign"), result.duplicateIDs)
+        assertEquals(1, result.matches.size)
+        assertEquals("art-verge", result.matches[0].keptArticleId)
+        assertEquals("art-ign", result.matches[0].duplicateArticleId)
+        assertEquals("The Verge", result.matches[0].keptFeedTitle)
+        assertEquals("IGN", result.matches[0].duplicateFeedTitle)
     }
 
     @Test
@@ -42,23 +49,27 @@ class ArticleDeduplicatorTest {
                 id = "art-newer",
                 feedID = "feed-a",
                 title = "Nintendo announces Switch 2 with backwards compatibility",
-                publishedAt = now
+                publishedAt = now,
+                feedTitle = "Feed A"
             ),
             ArticleCandidate(
                 id = "art-older",
                 feedID = "feed-b",
                 title = "Nintendo announces Switch 2 with backward compatibility",
-                publishedAt = now - 1800
+                publishedAt = now - 1800,
+                feedTitle = "Feed B"
             )
         )
 
-        val duplicates = ArticleDeduplicator.findDuplicates(
+        val result = ArticleDeduplicator.findDuplicates(
             candidates = candidates,
             preferredFeedIDs = emptyList(),
             similarityThreshold = 0.80f,
         )
 
-        assertEquals(listOf("art-older"), duplicates)
+        assertEquals(listOf("art-older"), result.duplicateIDs)
+        assertEquals(1, result.matches.size)
+        assertEquals("art-newer", result.matches[0].keptArticleId)
     }
 
     @Test
@@ -79,13 +90,14 @@ class ArticleDeduplicatorTest {
             )
         )
 
-        val duplicates = ArticleDeduplicator.findDuplicates(
+        val result = ArticleDeduplicator.findDuplicates(
             candidates = candidates,
             bypassKeywords = setOf("Review", "Reviews"),
             similarityThreshold = 0.50f,
         )
 
-        assertTrue(duplicates.isEmpty())
+        assertTrue(result.duplicateIDs.isEmpty())
+        assertTrue(result.matches.isEmpty())
     }
 
     @Test
@@ -106,13 +118,13 @@ class ArticleDeduplicatorTest {
             )
         )
 
-        val duplicates = ArticleDeduplicator.findDuplicates(
+        val result = ArticleDeduplicator.findDuplicates(
             candidates = candidates,
             timeWindowSeconds = 48 * 3600L,
             similarityThreshold = 0.90f,
         )
 
-        assertTrue(duplicates.isEmpty())
+        assertTrue(result.duplicateIDs.isEmpty())
     }
 
     @Test
@@ -123,28 +135,33 @@ class ArticleDeduplicatorTest {
                 id = "art-1",
                 feedID = "feed-1",
                 title = "Federal Reserve cuts interest rates by 50 basis points",
-                publishedAt = now
+                publishedAt = now,
+                feedTitle = "Source 1"
             ),
             ArticleCandidate(
                 id = "art-2",
                 feedID = "feed-fav",
                 title = "Fed cuts interest rates by 50 basis points",
-                publishedAt = now - 600
+                publishedAt = now - 600,
+                feedTitle = "Favorite Source"
             ),
             ArticleCandidate(
                 id = "art-3",
                 feedID = "feed-3",
                 title = "Federal Reserve cuts rates by 50 basis points",
-                publishedAt = now - 1200
+                publishedAt = now - 1200,
+                feedTitle = "Source 3"
             )
         )
 
-        val duplicates = ArticleDeduplicator.findDuplicates(
+        val result = ArticleDeduplicator.findDuplicates(
             candidates = candidates,
             preferredFeedIDs = listOf("feed-fav"),
             similarityThreshold = 0.75f,
         )
 
-        assertEquals(setOf("art-1", "art-3"), duplicates.toSet())
+        assertEquals(setOf("art-1", "art-3"), result.duplicateIDs.toSet())
+        assertEquals(2, result.matches.size)
+        assertTrue(result.matches.all { it.keptArticleId == "art-2" })
     }
 }
