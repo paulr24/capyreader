@@ -322,6 +322,39 @@ class ArticleScreenViewModelTest {
         coVerify(exactly = 1) { account.markRead("1") }
     }
 
+    @Test
+    fun `selectArticle preserves read state when full content loads`() = runTest {
+        val article = createArticle(id = "1", read = false).copy(
+            enableStickyFullContent = true
+        )
+        appPreferences.enableStickyFullContent.set(true)
+        coEvery { account.findArticle("1") } returns article
+        coEvery { account.fetchFullContent(any()) } returns Result.success("Full extracted body")
+
+        val viewModel = buildViewModel()
+        viewModel.selectArticle("1")
+        advanceUntilIdle()
+
+        assertEquals(true, viewModel.article?.read)
+        assertEquals("Full extracted body", viewModel.article?.content)
+    }
+
+    @Test
+    fun `selectArticle preserves read state when full content fails`() = runTest {
+        val article = createArticle(id = "1", read = false).copy(
+            enableStickyFullContent = true
+        )
+        appPreferences.enableStickyFullContent.set(true)
+        coEvery { account.findArticle("1") } returns article
+        coEvery { account.fetchFullContent(any()) } returns Result.failure(Exception("Failed to load"))
+
+        val viewModel = buildViewModel()
+        viewModel.selectArticle("1")
+        advanceUntilIdle()
+
+        assertEquals(true, viewModel.article?.read)
+    }
+
     private fun createArticle(id: String, read: Boolean = false): Article {
         return Article(
             id = id,

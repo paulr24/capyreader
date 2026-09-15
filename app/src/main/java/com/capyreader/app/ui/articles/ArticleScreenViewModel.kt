@@ -70,6 +70,8 @@ class ArticleScreenViewModel(
 
     private var markReadJob: Job? = null
 
+    private var selectArticleJob: Job? = null
+
     private var pendingMarkReadArticleID: String? = null
 
     var refreshSkipReason by mutableStateOf<RefreshSkipReason?>(null)
@@ -590,7 +592,8 @@ class ArticleScreenViewModel(
         pendingMarkReadArticleID = null
         markReadJob = null
 
-        viewModelScope.launchIO {
+        selectArticleJob?.cancel()
+        selectArticleJob = viewModelScope.launchIO {
             val article = buildArticle(articleID) ?: return@launchIO
             val delayDuration = appPreferences.readerOptions.markReadDelay.get().duration
             val willMarkImmediately = !article.read && delayDuration == Duration.ZERO
@@ -697,6 +700,8 @@ class ArticleScreenViewModel(
     }
 
     fun clearArticle() {
+        selectArticleJob?.cancel()
+        selectArticleJob = null
         val previousID = pendingMarkReadArticleID
         if (previousID != null) {
             markReadJob?.cancel()
@@ -871,7 +876,11 @@ class ArticleScreenViewModel(
                 account.enableStickyContent(article.feedID)
             }
 
-            _article = article.copy(fullContent = Article.FullContentState.LOADING)
+            if (_article?.id == article.id) {
+                _article = _article?.copy(fullContent = Article.FullContentState.LOADING)
+            } else {
+                _article = article.copy(fullContent = Article.FullContentState.LOADING)
+            }
 
             _article?.let { fetchFullContent(it) }
         }
@@ -897,7 +906,7 @@ class ArticleScreenViewModel(
             .fold(
                 onSuccess = { value ->
                     if (_article?.id == article.id) {
-                        _article = article.copy(
+                        _article = _article?.copy(
                             content = value,
                             fullContent = Article.FullContentState.LOADED
                         )
@@ -907,8 +916,8 @@ class ArticleScreenViewModel(
                     if (_article?.id != article.id) {
                         return
                     }
-                    _article = article.copy(
-                        content = article.defaultContent,
+                    _article = _article?.copy(
+                        content = _article?.defaultContent.orEmpty(),
                         fullContent = Article.FullContentState.ERROR
                     )
 
