@@ -83,9 +83,10 @@ class FeedHealthSettingsViewModel(
                     compareBy<FeedHealthStats> {
                         when (it.pruneReason()) {
                             PruneReason.DEAD_FEED -> 0
-                            PruneReason.FIREHOSE_LOW_READ -> 1
-                            PruneReason.DORMANT -> 2
-                            null -> 3
+                            PruneReason.HIGH_DISINTEREST -> 1
+                            PruneReason.FIREHOSE_LOW_READ -> 2
+                            PruneReason.DORMANT -> 3
+                            null -> 4
                         }
                     }.thenBy { it.readRate }
                 )
