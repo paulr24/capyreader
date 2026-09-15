@@ -29,7 +29,7 @@ class DislikedArticleRecords(
                     id = id,
                     feedID = feedID,
                     articleTitle = articleTitle,
-                    createdAt = toDateTimeFromSeconds(createdAt)
+                    createdAt = createdAt.toDateTimeFromSeconds
                 )
             }
             .executeAsList()
@@ -42,7 +42,7 @@ class DislikedArticleRecords(
                     id = id,
                     feedID = feedID,
                     articleTitle = articleTitle,
-                    createdAt = toDateTimeFromSeconds(createdAt)
+                    createdAt = createdAt.toDateTimeFromSeconds
                 )
             }
             .executeAsList()
