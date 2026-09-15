@@ -509,4 +509,14 @@
     <string name="settings_feed_health_unsubscribe_confirm_title">Unsubscribe from %1$s?</string>
     <string name="settings_feed_health_unsubscribe_confirm_message">This will remove the feed and delete all its cached articles from your account.</string>
     <string name="settings_feed_health_unsubscribe_success">Unsubscribed from %1$s</string>
+    <string name="settings_feed_health_reason_disinterest">High Disinterest (%1$d%% thumbed down)</string>
+    <string name="settings_feed_health_disliked_label">%1$d thumbed down</string>
+
+    <!-- Dislike / Thumbs Down & Muted Stories -->
+    <string name="article_bottom_bar_dislike">Not valuable / Skip</string>
+    <string name="article_disliked_snackbar">Story thumbed down • Similar articles muted</string>
+    <string name="article_disliked_undo">Undo</string>
+    <string name="settings_similar_articles_muted_stories_title">Muted Stories (%1$d)</string>
+    <string name="settings_similar_articles_muted_stories_empty">No thumbed-down stories muted</string>
+    <string name="settings_similar_articles_unmute">Unmute</string>
 </resources>

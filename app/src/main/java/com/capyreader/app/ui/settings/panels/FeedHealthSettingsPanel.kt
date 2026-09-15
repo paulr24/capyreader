@@ -357,6 +357,9 @@ private fun RecommendationCard(
         PruneReason.FIREHOSE_LOW_READ -> {
             stringResource(R.string.settings_feed_health_reason_firehose, feed.readPercentage, feed.weeklyVolume)
         }
+        PruneReason.HIGH_DISINTEREST -> {
+            stringResource(R.string.settings_feed_health_reason_disinterest, (feed.disinterestRate * 100).toInt())
+        }
         null -> ""
     }
 
@@ -496,6 +499,14 @@ private fun FeedHealthItem(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (feed.dislikedCount > 0) {
+                    Text("•", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    Text(
+                        text = stringResource(R.string.settings_feed_health_disliked_label, feed.dislikedCount),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         }
 

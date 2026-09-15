@@ -1,0 +1,9 @@
+CREATE TABLE disliked_articles (
+  id TEXT NOT NULL PRIMARY KEY,
+  feed_id TEXT NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
+  article_title TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+CREATE INDEX disliked_articles_created_at_index ON disliked_articles(created_at);
+CREATE INDEX disliked_articles_feed_id_index ON disliked_articles(feed_id);

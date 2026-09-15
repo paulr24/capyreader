@@ -4,6 +4,7 @@ enum class PruneReason {
     DEAD_FEED,
     DORMANT,
     FIREHOSE_LOW_READ,
+    HIGH_DISINTEREST,
 }
 
 data class FeedHealthStats(
@@ -19,6 +20,7 @@ data class FeedHealthStats(
     val mostRecentArticleAt: Long?,
     val oldestArticleAt: Long?,
     val lastReadAt: Long?,
+    val dislikedCount: Long = 0L,
 ) {
     val readRate: Float
         get() = if (totalArticles > 0) {
@@ -45,6 +47,13 @@ data class FeedHealthStats(
             }
         }
 
+    val disinterestRate: Float
+        get() = if (totalArticles > 0) {
+            dislikedCount.toFloat() / totalArticles.toFloat()
+        } else {
+            0.0f
+        }
+
     fun daysSinceLastPost(nowEpochSeconds: Long = System.currentTimeMillis() / 1000L): Long? {
         val recent = mostRecentArticleAt ?: return null
         return ((nowEpochSeconds - recent) / 86400L).coerceAtLeast(0L)
@@ -57,6 +66,10 @@ data class FeedHealthStats(
     }
 
     fun pruneReason(nowEpochSeconds: Long = System.currentTimeMillis() / 1000L): PruneReason? {
+        if (dislikedCount >= 2 && disinterestRate >= 0.20f && starredArticles == 0L) {
+            return PruneReason.HIGH_DISINTEREST
+        }
+
         val daysSincePost = daysSinceLastPost(nowEpochSeconds)
         if (daysSincePost != null && daysSincePost >= 180L) {
             return PruneReason.DEAD_FEED

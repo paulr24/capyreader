@@ -51,6 +51,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -61,6 +62,7 @@ import com.capyreader.app.ui.components.FormSection
 import com.capyreader.app.ui.components.LocalSnackbarHost
 import com.capyreader.app.ui.components.TextSwitch
 import com.capyreader.app.ui.settings.PreferenceSelect
+import com.jocmp.capy.DislikedArticle
 import com.jocmp.capy.Feed
 import com.jocmp.capy.articles.similarity.DeduplicationMatch
 import kotlinx.coroutines.launch
@@ -74,6 +76,7 @@ fun SimilarArticlesSettingsPanel(
     val availableFeeds by viewModel.availableFeeds.collectAsStateWithLifecycle()
     val bypassWords by viewModel.bypassWords.collectAsStateWithLifecycle()
     val recentMatches by viewModel.recentMatches.collectAsStateWithLifecycle()
+    val mutedArticles by viewModel.mutedArticles.collectAsStateWithLifecycle()
     val snackbarHost = LocalSnackbarHost.current
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -100,6 +103,8 @@ fun SimilarArticlesSettingsPanel(
         isMatchesDialogOpen = isMatchesDialogOpen,
         onSetMatchesDialogOpen = { isMatchesDialogOpen = it },
         isCleaningUp = viewModel.isCleaningUp,
+        mutedArticles = mutedArticles,
+        onUnmuteArticle = viewModel::unmuteArticle,
         onCleanUpNow = {
             viewModel.cleanUpNow { result ->
                 coroutineScope.launch {
@@ -143,6 +148,8 @@ fun SimilarArticlesSettingsPanelView(
     onSetMatchesDialogOpen: (Boolean) -> Unit,
     isCleaningUp: Boolean,
     onCleanUpNow: () -> Unit,
+    mutedArticles: List<DislikedArticle> = emptyList(),
+    onUnmuteArticle: (String) -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
     var isAddSourceDialogOpen by remember { mutableStateOf(false) }
@@ -382,6 +389,47 @@ fun SimilarArticlesSettingsPanelView(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("${stringResource(R.string.settings_similar_articles_view_matches)} (${recentMatches.size})")
+                }
+            }
+        }
+
+        // Muted Stories (from Thumbs Down)
+        FormSection(title = stringResource(R.string.settings_similar_articles_muted_stories_title, mutedArticles.size)) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (mutedArticles.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.settings_similar_articles_muted_stories_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                } else {
+                    mutedArticles.forEach { article ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = article.articleTitle,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TextButton(
+                                onClick = { onUnmuteArticle(article.id) }
+                            ) {
+                                Text(stringResource(R.string.settings_similar_articles_unmute))
+                            }
+                        }
+                    }
                 }
             }
         }

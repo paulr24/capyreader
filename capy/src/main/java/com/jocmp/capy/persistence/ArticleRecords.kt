@@ -190,7 +190,7 @@ class ArticleRecords(
     fun feedStatistics(): List<FeedHealthStats> {
         return database.articlesQueries
             .feedStatistics(
-                mapper = { feedID, feedTitle, feedURL, siteURL, faviconURL, totalArticles, readArticles, unreadArticles, starredArticles, mostRecentArticleAt, oldestArticleAt, lastReadAt ->
+                mapper = { feedID, feedTitle, feedURL, siteURL, faviconURL, totalArticles, readArticles, unreadArticles, starredArticles, mostRecentArticleAt, oldestArticleAt, lastReadAt, dislikedCount ->
                     FeedHealthStats(
                         feedID = feedID,
                         title = feedTitle,
@@ -204,6 +204,7 @@ class ArticleRecords(
                         mostRecentArticleAt = mostRecentArticleAt,
                         oldestArticleAt = oldestArticleAt,
                         lastReadAt = lastReadAt,
+                        dislikedCount = dislikedCount,
                     )
                 }
             )

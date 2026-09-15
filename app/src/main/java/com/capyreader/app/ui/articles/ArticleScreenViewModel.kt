@@ -675,6 +675,23 @@ class ArticleScreenViewModel(
         }
     }
 
+    fun dislikeArticle(article: Article) {
+        viewModelScope.launchIO {
+            account.dislikeArticle(
+                articleID = article.id,
+                feedID = article.feedID,
+                title = article.title
+            )
+            notificationHelper.dismissNotifications(listOf(article.id))
+        }
+    }
+
+    fun undislikeArticle(articleID: String) {
+        viewModelScope.launchIO {
+            account.undislikeArticle(articleID = articleID)
+        }
+    }
+
     fun dismissUnauthorizedMessage() {
         _showUnauthorizedMessage = UnauthorizedMessageState.LATER
     }

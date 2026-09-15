@@ -1,0 +1,36 @@
+add:
+INSERT OR REPLACE INTO disliked_articles (
+  id,
+  feed_id,
+  article_title,
+  created_at
+)
+VALUES (
+  :id,
+  :feedID,
+  :articleTitle,
+  :createdAt
+);
+
+deleteByID:
+DELETE FROM disliked_articles WHERE id = :id;
+
+allActive:
+SELECT *
+FROM disliked_articles
+WHERE created_at >= :sinceEpochSeconds
+ORDER BY created_at DESC;
+
+all:
+SELECT *
+FROM disliked_articles
+ORDER BY created_at DESC;
+
+countByFeed:
+SELECT feed_id, COUNT(*)
+FROM disliked_articles
+GROUP BY feed_id;
+
+deleteOlderThan:
+DELETE FROM disliked_articles
+WHERE created_at < :cutoffEpochSeconds;

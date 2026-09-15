@@ -6,11 +6,15 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jocmp.capy.Account
+import com.jocmp.capy.DislikedArticle
 import com.jocmp.capy.Feed
 import com.jocmp.capy.articles.similarity.DeduplicationMatch
 import com.jocmp.capy.articles.similarity.DeduplicationResult
 import com.jocmp.capy.preferences.getAndSet
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -18,6 +22,13 @@ import kotlinx.coroutines.launch
 class SimilarArticlesSettingsViewModel(
     val account: Account,
 ) : ViewModel() {
+
+    private val _mutedArticles = MutableStateFlow<List<DislikedArticle>>(emptyList())
+    val mutedArticles: StateFlow<List<DislikedArticle>> = _mutedArticles.asStateFlow()
+
+    init {
+        loadMutedArticles()
+    }
 
     var enabled by mutableStateOf(account.preferences.deduplicationEnabled.get())
         private set
@@ -142,6 +153,19 @@ class SimilarArticlesSettingsViewModel(
             } finally {
                 isCleaningUp = false
             }
+        }
+    }
+
+    fun loadMutedArticles() {
+        viewModelScope.launch {
+            _mutedArticles.value = account.allDislikedArticles()
+        }
+    }
+
+    fun unmuteArticle(articleID: String) {
+        viewModelScope.launch {
+            account.undislikeArticle(articleID)
+            loadMutedArticles()
         }
     }
 }

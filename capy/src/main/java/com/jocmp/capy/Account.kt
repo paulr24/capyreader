@@ -19,6 +19,7 @@ import com.jocmp.capy.accounts.reader.buildReaderDelegate
 import com.jocmp.capy.articles.ArticleContent
 import com.jocmp.capy.articles.SortOrder
 import com.jocmp.capy.articles.similarity.ArticleDeduplicator
+import com.jocmp.capy.articles.similarity.ArticleSimilarity
 import com.jocmp.capy.articles.similarity.DeduplicationResult
 import com.jocmp.capy.stats.FeedHealthStats
 import com.jocmp.capy.common.TimeHelpers.nowUTC
@@ -31,6 +32,7 @@ import com.jocmp.capy.logging.CapyLog
 import com.jocmp.capy.opml.ImportProgress
 import com.jocmp.capy.opml.OPMLImporter
 import com.jocmp.capy.persistence.ArticleRecords
+import com.jocmp.capy.persistence.DislikedArticleRecords
 import com.jocmp.capy.persistence.EnclosureRecords
 import com.jocmp.capy.persistence.FeedRecords
 import com.jocmp.capy.persistence.FolderRecords
@@ -106,6 +108,7 @@ data class Account(
     }
 ) {
     internal val articleRecords = ArticleRecords(database)
+    internal val dislikedArticleRecords = DislikedArticleRecords(database)
     private val enclosureRecords = EnclosureRecords(database)
     private val feedRecords = FeedRecords(database)
     private val folderRecords = FolderRecords(database)
@@ -243,6 +246,8 @@ data class Account(
             if (preferences.deduplicationEnabled.get()) {
                 deduplicateArticles()
             }
+
+            muteDislikedArticles()
 
             result
         } catch (e: Throwable) {
@@ -542,6 +547,40 @@ data class Account(
 
             result
         }
+    }
+
+    suspend fun dislikeArticle(articleID: String, feedID: String, title: String): List<String> = withIOContext {
+        dislikedArticleRecords.add(id = articleID, feedID = feedID, articleTitle = title)
+        markRead(articleID)
+        muteDislikedArticles()
+    }
+
+    suspend fun undislikeArticle(articleID: String) = withIOContext {
+        dislikedArticleRecords.delete(id = articleID)
+        markUnread(articleID)
+    }
+
+    suspend fun allDislikedArticles(): List<DislikedArticle> = withIOContext {
+        dislikedArticleRecords.all()
+    }
+
+    suspend fun muteDislikedArticles(): List<String> = withIOContext {
+        val active = dislikedArticleRecords.allActive()
+        if (active.isEmpty()) return@withIOContext emptyList()
+        val cutoff = nowUTC().minusDays(7)
+        dislikedArticleRecords.deleteOlderThan(nowUTC().minusDays(30))
+
+        val unreadCandidates = articleRecords.findUnreadCandidates(since = cutoff)
+        val toMute = unreadCandidates.filter { candidate ->
+            active.any { disliked ->
+                candidate.id != disliked.id && ArticleSimilarity.calculateTitleSimilarity(candidate.title, disliked.articleTitle) >= 0.85f
+            }
+        }.map { it.id }
+
+        if (toMute.isNotEmpty()) {
+            markAllRead(toMute)
+        }
+        toMute
     }
 
     suspend fun feedStatistics(): List<FeedHealthStats> = withIOContext {

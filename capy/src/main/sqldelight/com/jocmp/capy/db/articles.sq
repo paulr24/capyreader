@@ -330,10 +330,16 @@ SELECT
   COALESCE(SUM(CASE WHEN article_statuses.starred = 1 THEN 1 ELSE 0 END), 0) AS starred_articles,
   MAX(articles.published_at) AS most_recent_article_at,
   MIN(articles.published_at) AS oldest_article_at,
-  MAX(COALESCE(article_statuses.last_read_at, CASE WHEN article_statuses.read = 1 THEN articles.published_at ELSE NULL END)) AS last_read_at
+  MAX(COALESCE(article_statuses.last_read_at, CASE WHEN article_statuses.read = 1 THEN articles.published_at ELSE NULL END)) AS last_read_at,
+  COALESCE(disliked_counts.count, 0) AS disliked_count
 FROM feeds
 LEFT JOIN articles ON feeds.id = articles.feed_id
 LEFT JOIN article_statuses ON articles.id = article_statuses.article_id
+LEFT JOIN (
+  SELECT feed_id, COUNT(*) AS count
+  FROM disliked_articles
+  GROUP BY feed_id
+) disliked_counts ON feeds.id = disliked_counts.feed_id
 GROUP BY feeds.id
 ORDER BY feeds.title COLLATE NOCASE ASC;
 

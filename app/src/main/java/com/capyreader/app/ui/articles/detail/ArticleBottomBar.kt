@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FiberManualRecord
+import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FiberManualRecord
@@ -56,6 +57,7 @@ fun ArticleBottomBar(
     onSummarize: () -> Unit = {},
     onToggleRead: () -> Unit,
     onToggleStar: () -> Unit,
+    onDislike: () -> Unit = {},
     onSelectNext: () -> Unit,
     bottomPadding: Dp = ArticleBarDefaults.FloatingToolbarBottomGap,
 ) {
@@ -100,6 +102,23 @@ fun ArticleBottomBar(
                         Icon(
                             if (article.starred) Icons.Rounded.Star else Icons.Rounded.StarOutline,
                             contentDescription = stringResource(R.string.article_view_star),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                ToolbarTooltip(
+                    positioning = TooltipAnchorPosition.Above,
+                    message = stringResource(R.string.article_bottom_bar_dislike)
+                ) {
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onDislike()
+                        }
+                    ) {
+                        Icon(
+                            Icons.Outlined.ThumbDown,
+                            contentDescription = stringResource(R.string.article_bottom_bar_dislike),
                             modifier = Modifier.size(24.dp)
                         )
                     }

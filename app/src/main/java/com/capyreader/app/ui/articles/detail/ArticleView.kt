@@ -14,8 +14,10 @@ import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -23,11 +25,15 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.capyreader.app.R
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -64,6 +70,8 @@ fun ArticleView(
     onBackPressed: () -> Unit,
     onToggleRead: () -> Unit,
     onToggleStar: () -> Unit,
+    onDislike: (article: Article) -> Unit = {},
+    onUndislike: (articleID: String) -> Unit = {},
     canSaveExternally: Boolean = false,
     onDeletePage: () -> Unit = {},
     onScrollToArticle: (index: Int) -> Unit,
@@ -151,7 +159,28 @@ fun ArticleView(
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
     val audioEnclosure by audioController.currentAudio.collectAsState()
+
+    val handleDislike = {
+        val disliked = article
+        onDislike(disliked)
+        if (hasNext) {
+            selectNext()
+        }
+        coroutineScope.launch {
+            val result = snackbarHostState.showSnackbar(
+                message = context.getString(R.string.article_disliked_snackbar),
+                actionLabel = context.getString(R.string.article_disliked_undo),
+                duration = SnackbarDuration.Short,
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                onUndislike(disliked.id)
+                onSelectArticle(disliked.id)
+            }
+        }
+    }
 
     val contentPadding = rememberContentPadding(pinToolbars)
 
@@ -222,6 +251,7 @@ fun ArticleView(
                 onSummarize = { summaryTrigger = System.currentTimeMillis() },
                 onToggleRead = onToggleRead,
                 onToggleStar = onToggleStar,
+                onDislike = { handleDislike() },
                 onSelectNext = { selectNext() },
                 bottomPadding = if (audioEnclosure != null) 120.dp else ArticleBarDefaults.FloatingToolbarBottomGap,
             )

@@ -660,6 +660,8 @@ fun ArticleScreen(
                         },
                         onToggleRead = viewModel::toggleArticleRead,
                         onToggleStar = viewModel::toggleArticleStar,
+                        onDislike = viewModel::dislikeArticle,
+                        onUndislike = viewModel::undislikeArticle,
                         canSaveExternally = canSaveExternally,
                         onDeletePage = {
                             clearArticle()
