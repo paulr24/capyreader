@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":capy"))
     implementation(libs.sqldelight.sqlite.driver)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.jsoup)
 
@@ -38,7 +39,7 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe
             )
             packageName = "CapyReader"
-            packageVersion = "1.0.1229"
+            packageVersion = "1.0.1230"
             description = "Capy Reader - RSS Reader for Desktop"
             copyright = "© 2026 Capy Reader"
             vendor = "Capy Reader"
@@ -46,6 +47,7 @@ compose.desktop {
             windows {
                 menuGroup = "Capy Reader"
                 upgradeUuid = "a4c28f11-96d5-4a2e-8d2b-6c4a6b29e011"
+                iconFile.set(project.file("src/main/resources/icon.ico"))
             }
         }
     }

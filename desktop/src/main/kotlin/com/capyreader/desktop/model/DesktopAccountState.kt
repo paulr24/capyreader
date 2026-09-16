@@ -333,8 +333,12 @@ class DesktopAccountState(
                 }
                 syncAndRefresh()
             } catch (e: Throwable) {
-                withContext(Dispatchers.Main) {
-                    onError(e.message ?: "Authentication failed")
+                try {
+                    withContext(Dispatchers.Main) {
+                        onError(e.message ?: "Authentication failed")
+                    }
+                } catch (_: Throwable) {
+                    _errorMessage.value = e.message ?: "Authentication failed"
                 }
             }
         }
@@ -358,8 +362,12 @@ class DesktopAccountState(
                 }
                 syncAndRefresh()
             } catch (e: Throwable) {
-                withContext(Dispatchers.Main) {
-                    onError(e.message ?: "Failed to add feed")
+                try {
+                    withContext(Dispatchers.Main) {
+                        onError(e.message ?: "Failed to add feed")
+                    }
+                } catch (_: Throwable) {
+                    _errorMessage.value = e.message ?: "Failed to add feed"
                 }
             }
         }
