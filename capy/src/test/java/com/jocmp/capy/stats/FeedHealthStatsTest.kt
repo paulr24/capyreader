@@ -118,7 +118,7 @@ class FeedHealthStatsTest {
         )
 
         assertEquals(PruneReason.DORMANT, stats.pruneReason(now))
-        assertTrue(stats.isRecommendedForPruning)
+        assertTrue(stats.isRecommendedForPruning(now))
     }
 
     @Test
@@ -139,6 +139,6 @@ class FeedHealthStatsTest {
         )
 
         assertNull(stats.pruneReason(now))
-        assertFalse(stats.isRecommendedForPruning)
+        assertFalse(stats.isRecommendedForPruning(now))
     }
 }

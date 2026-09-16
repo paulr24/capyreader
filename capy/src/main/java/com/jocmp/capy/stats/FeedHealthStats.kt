@@ -87,6 +87,9 @@ data class FeedHealthStats(
         return null
     }
 
+    fun isRecommendedForPruning(nowEpochSeconds: Long = System.currentTimeMillis() / 1000L): Boolean =
+        pruneReason(nowEpochSeconds) != null
+
     val isRecommendedForPruning: Boolean
-        get() = pruneReason() != null
+        get() = isRecommendedForPruning()
 }

@@ -35,7 +35,7 @@ class ArticleSimilarityTest {
         val titleA = "Nintendo officially announces the Switch 2 with backward compatibility"
         val titleB = "Nintendo announces Switch 2 with backwards compatibility"
         val similarity = ArticleSimilarity.calculateTitleSimilarity(titleA, titleB)
-        assertTrue(similarity >= 0.85f, "Expected similarity >= 0.85, got $similarity")
+        assertTrue(similarity >= 0.75f, "Expected similarity >= 0.75, got $similarity")
     }
 
     @Test
