@@ -39,10 +39,12 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe
             )
             packageName = "CapyReader"
-            packageVersion = "1.0.1231"
+            packageVersion = "1.0.1232"
             description = "Capy Reader - RSS Reader for Desktop"
             copyright = "© 2026 Capy Reader"
             vendor = "Capy Reader"
+
+            modules("java.sql", "java.naming", "jdk.unsupported")
 
             windows {
                 menuGroup = "Capy Reader"
