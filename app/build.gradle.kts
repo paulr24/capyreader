@@ -181,6 +181,7 @@ dependencies {
     testImplementation(libs.tests.robolectric)
     testImplementation(libs.tests.turbine)
     testImplementation(libs.tests.work.testing)
+    testImplementation(libs.mockwebserver3)
     androidTestImplementation(libs.tests.androidx.test.ext)
     androidTestImplementation(libs.tests.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

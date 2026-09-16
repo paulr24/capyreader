@@ -2,7 +2,10 @@ package com.capyreader.app.preferences
 
 import com.jocmp.capy.preferences.Preference
 import com.jocmp.capy.preferences.PreferenceStore
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -26,7 +29,7 @@ class AIOptionsTest {
         assertFalse(options.isConfigured())
         assertEquals(GeminiModels.FLASH_3_5_LITE, options.currentModel())
         assertEquals(AIAudioProvider.GEMINI, options.audioProvider.get())
-        assertEquals(GeminiAudioModels.FLASH_TTS_3_1, options.geminiAudioModel.get())
+        assertEquals(GeminiAudioModels.FLASH_3_1_TTS, options.geminiAudioModel.get())
         assertEquals(GeminiVoices.KORE, options.geminiVoice.get())
         assertEquals(OpenAIVoices.ALLOY, options.openAiVoice.get())
     }
@@ -99,6 +102,10 @@ class AIOptionsTest {
         private val defaultValue: T,
         private val map: MutableMap<String, Any>
     ) : Preference<T> {
+        override fun key(): String = key
+
+        override fun defaultValue(): T = defaultValue
+
         @Suppress("UNCHECKED_CAST")
         override fun get(): T = map[key] as? T ?: defaultValue
 
@@ -106,14 +113,15 @@ class AIOptionsTest {
             map[key] = value as Any
         }
 
-        override val state: Flow<T>
-            get() = flowOf(get())
+        override fun changes(): Flow<T> = flowOf(get())
+
+        override fun stateIn(scope: CoroutineScope): StateFlow<T> =
+            MutableStateFlow(get())
 
         override fun delete() {
             map.remove(key)
         }
 
-        override val isSet: Boolean
-            get() = map.containsKey(key)
+        override fun isSet(): Boolean = map.containsKey(key)
     }
 }

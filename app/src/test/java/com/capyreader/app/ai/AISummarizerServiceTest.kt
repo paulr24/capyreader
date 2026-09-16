@@ -8,6 +8,10 @@ import com.jocmp.capy.preferences.Preference
 import com.jocmp.capy.preferences.PreferenceStore
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
@@ -186,6 +190,10 @@ class AISummarizerServiceTest {
         private val defaultValue: T,
         private val map: MutableMap<String, Any>
     ) : Preference<T> {
+        override fun key(): String = key
+
+        override fun defaultValue(): T = defaultValue
+
         @Suppress("UNCHECKED_CAST")
         override fun get(): T = map[key] as? T ?: defaultValue
 
@@ -193,13 +201,15 @@ class AISummarizerServiceTest {
             map[key] = value as Any
         }
 
-        override val state = flowOf(get())
+        override fun changes(): Flow<T> = flowOf(get())
+
+        override fun stateIn(scope: CoroutineScope): StateFlow<T> =
+            MutableStateFlow(get())
 
         override fun delete() {
             map.remove(key)
         }
 
-        override val isSet: Boolean
-            get() = map.containsKey(key)
+        override fun isSet(): Boolean = map.containsKey(key)
     }
 }
