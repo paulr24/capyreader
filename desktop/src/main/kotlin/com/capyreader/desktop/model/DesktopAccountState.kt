@@ -264,7 +264,7 @@ class DesktopAccountState(
     fun dislikeArticle(article: Article) {
         val account = _currentAccount.value ?: return
         scope.launch(Dispatchers.IO) {
-            account.markArticleAsDisliked(article)
+            account.dislikeArticle(articleID = article.id, feedID = article.feedID, title = article.title)
             _articles.value = _articles.value.filter { it.id != article.id }
             if (_selectedArticle.value?.id == article.id) {
                 _selectedArticle.value = _articles.value.firstOrNull()
