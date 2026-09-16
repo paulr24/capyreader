@@ -105,9 +105,6 @@ fun DesktopSettingsDialog(
     var fontFamily by remember {
         mutableStateOf(state.preferences.fontFamily.get())
     }
-    var promptTemplate by remember {
-        mutableStateOf(aiOptions.promptTemplate.get())
-    }
 
     var isPruning by remember { mutableStateOf(false) }
     var pruneStatusMessage by remember { mutableStateOf<String?>(null) }
@@ -124,6 +121,7 @@ fun DesktopSettingsDialog(
     var openAiEndpoint by remember { mutableStateOf(aiOptions.openAiEndpoint.get()) }
     var openAiModel by remember { mutableStateOf(aiOptions.openAiModel.get()) }
     var autoSummarize by remember { mutableStateOf(aiOptions.autoSummarize.get()) }
+    var promptTemplate by remember { mutableStateOf(aiOptions.promptTemplate.get()) }
     var isTestingConnection by remember { mutableStateOf(false) }
     var testConnectionResult by remember { mutableStateOf<String?>(null) }
     var clearCacheStatus by remember { mutableStateOf<String?>(null) }
