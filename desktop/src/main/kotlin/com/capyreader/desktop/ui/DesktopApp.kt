@@ -143,6 +143,10 @@ fun DesktopApp() {
                                     }
                                     true
                                 }
+                                Key.F, Key.W -> {
+                                    selected?.let { state.toggleFullContent(it) }
+                                    true
+                                }
                                 Key.Backslash -> {
                                     val currentlyOpen = userSidebarOpen ?: isWide
                                     userSidebarOpen = !currentlyOpen

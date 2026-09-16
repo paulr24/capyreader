@@ -256,10 +256,70 @@ class DesktopAccountState(
                 }
             }
         }
+        if (article.enableStickyFullContent && article.fullContent == Article.FullContentState.NONE) {
+            toggleFullContent(article)
+        }
     }
 
     fun clearSelectedArticle() {
         _selectedArticle.value = null
+    }
+
+    fun toggleFullContent(article: Article) {
+        val current = _selectedArticle.value?.takeIf { it.id == article.id } ?: article
+        if (current.fullContent == Article.FullContentState.LOADED) {
+            val reverted = current.copy(
+                content = current.defaultContent,
+                fullContent = Article.FullContentState.NONE
+            )
+            updateArticle(reverted)
+            return
+        }
+
+        if (current.fullContent == Article.FullContentState.LOADING) {
+            return
+        }
+
+        val loadingArticle = current.copy(fullContent = Article.FullContentState.LOADING)
+        updateArticle(loadingArticle)
+
+        val account = _currentAccount.value ?: return
+        scope.launch(Dispatchers.IO) {
+            val result = account.fetchFullContent(current)
+            result.fold(
+                onSuccess = { fullHtml ->
+                    if (fullHtml.isNotBlank()) {
+                        val loaded = current.copy(
+                            content = fullHtml,
+                            fullContent = Article.FullContentState.LOADED
+                        )
+                        updateArticle(loaded)
+                    } else {
+                        val failed = current.copy(
+                            content = current.defaultContent,
+                            fullContent = Article.FullContentState.ERROR
+                        )
+                        updateArticle(failed)
+                    }
+                },
+                onFailure = {
+                    val failed = current.copy(
+                        content = current.defaultContent,
+                        fullContent = Article.FullContentState.ERROR
+                    )
+                    updateArticle(failed)
+                }
+            )
+        }
+    }
+
+    private fun updateArticle(article: Article) {
+        _articles.value = _articles.value.map {
+            if (it.id == article.id) article else it
+        }
+        if (_selectedArticle.value?.id == article.id) {
+            _selectedArticle.value = article
+        }
     }
 
     fun toggleStarred(article: Article) {

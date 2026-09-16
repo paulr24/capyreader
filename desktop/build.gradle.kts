@@ -41,7 +41,7 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe
             )
             packageName = "CapyReader"
-            packageVersion = "1.0.1238"
+            packageVersion = "1.0.1239"
             description = "Capy Reader - RSS Reader for Desktop"
             copyright = "© 2026 Capy Reader"
             vendor = "Capy Reader"

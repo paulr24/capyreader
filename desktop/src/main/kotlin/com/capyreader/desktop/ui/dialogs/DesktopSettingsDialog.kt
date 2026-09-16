@@ -779,6 +779,7 @@ fun DesktopSettingsDialog(
                             ShortcutRow(key = "M", description = "Toggle read / unread status")
                             ShortcutRow(key = "S", description = "Toggle starred status")
                             ShortcutRow(key = "A  /  X", description = "Generate AI summary for current article")
+                            ShortcutRow(key = "F  /  W", description = "Load / extract full article content from web")
                             ShortcutRow(key = "\\", description = "Toggle sidebar pane open/collapsed")
                             ShortcutRow(key = "D", description = "Scan & clean up duplicate articles now")
                             ShortcutRow(key = "R", description = "Refresh feeds")
