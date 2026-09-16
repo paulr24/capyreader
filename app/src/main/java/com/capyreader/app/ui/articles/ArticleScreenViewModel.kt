@@ -31,7 +31,6 @@ import com.jocmp.capy.SavedSearch
 import com.jocmp.capy.articles.ArticleContent
 import com.jocmp.capy.articles.SidebarItem
 import com.jocmp.capy.common.UnauthorizedError
-import com.jocmp.capy.common.launchIO
 import com.jocmp.capy.common.launchUI
 import com.jocmp.capy.common.withIOContext
 import com.jocmp.capy.common.withUIContext
@@ -64,6 +63,9 @@ class ArticleScreenViewModel(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val syncFlushInterval: Duration? = SYNC_FLUSH_INTERVAL,
 ) : AndroidViewModel(application) {
+    private fun CoroutineScope.launchIO(block: suspend CoroutineScope.() -> Unit): Job =
+        launch(ioDispatcher, block = block)
+
     private var refreshJob: Job? = null
 
     private var fullContentJob: Job? = null
