@@ -557,9 +557,10 @@ fun DesktopAISummaryCard(
                                 Text(
                                     text = "Generate a concise 3-point summary using $modelName.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f)
                                 )
-
+                                Spacer(modifier = Modifier.width(16.dp))
                                 Button(
                                     onClick = { generateSummary(forceRefresh = false) },
                                     shape = RoundedCornerShape(8.dp)
@@ -570,7 +571,7 @@ fun DesktopAISummaryCard(
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Summarize Article", fontSize = 12.sp)
+                                    Text("Summarize Article", fontSize = 12.sp, maxLines = 1)
                                 }
                             }
                         }

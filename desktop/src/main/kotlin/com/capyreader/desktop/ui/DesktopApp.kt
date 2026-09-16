@@ -1,7 +1,9 @@
 package com.capyreader.desktop.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -37,6 +39,7 @@ import com.capyreader.desktop.ui.dialogs.DesktopLoginDialog
 import com.capyreader.desktop.ui.dialogs.DesktopSettingsDialog
 import com.capyreader.desktop.ui.sidebar.DesktopSidebar
 import com.capyreader.desktop.ui.theme.DesktopTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.awt.Desktop
 import java.net.URI
@@ -70,7 +73,15 @@ fun DesktopApp() {
     }
 
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
+        repeat(6) {
+            delay(150)
+            try {
+                focusRequester.requestFocus()
+                return@LaunchedEffect
+            } catch (_: Throwable) {
+                // Ignore while node is being measured and attached to focus tree
+            }
+        }
     }
 
     val themeMode by state.themeMode.collectAsState()
@@ -104,6 +115,14 @@ fun DesktopApp() {
                     .fillMaxSize()
                     .focusRequester(focusRequester)
                     .focusable()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        try {
+                            focusRequester.requestFocus()
+                        } catch (_: Throwable) {}
+                    }
                     .onPreviewKeyEvent { event ->
                         if (event.type == KeyEventType.KeyDown) {
                             val articles = state.articles.value
