@@ -17,6 +17,7 @@ import com.jocmp.capy.accounts.FaviconPolicy
 import com.jocmp.capy.accounts.Source
 import com.jocmp.capy.articles.SortOrder
 import com.jocmp.capy.common.TimeHelpers
+import com.jocmp.capy.persistence.ArticleRecords
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -135,9 +136,10 @@ class DesktopAccountState(
         val since = TimeHelpers.nowUTC().toOffsetDateTime()
 
         scope.launch(Dispatchers.IO) {
+            val articleRecords = ArticleRecords(account.database)
             val list: List<Article> = try {
                 when (currentFilter) {
-                    is ArticleFilter.Articles -> account.articleRecords.byStatus.all(
+                    is ArticleFilter.Articles -> articleRecords.byStatus.all(
                         status = currentFilter.articleStatus,
                         query = query,
                         limit = 300,
@@ -146,7 +148,7 @@ class DesktopAccountState(
                         since = since
                     ).executeAsList()
 
-                    is ArticleFilter.Feeds -> account.articleRecords.byFeed.all(
+                    is ArticleFilter.Feeds -> articleRecords.byFeed.all(
                         feedIDs = listOf(currentFilter.feedID),
                         status = currentFilter.feedStatus,
                         query = query,
@@ -161,7 +163,7 @@ class DesktopAccountState(
                         val folderFeedIDs = account.database.taggingsQueries
                             .findFeedIDs(folderTitle = currentFilter.folderTitle)
                             .executeAsList()
-                        account.articleRecords.byFeed.all(
+                        articleRecords.byFeed.all(
                             feedIDs = folderFeedIDs,
                             status = currentFilter.folderStatus,
                             query = query,
@@ -173,7 +175,7 @@ class DesktopAccountState(
                         ).executeAsList()
                     }
 
-                    is ArticleFilter.SavedSearches -> account.articleRecords.bySavedSearch.all(
+                    is ArticleFilter.SavedSearches -> articleRecords.bySavedSearch.all(
                         savedSearchID = currentFilter.savedSearchID,
                         status = currentFilter.savedSearchStatus,
                         query = query,
@@ -183,7 +185,7 @@ class DesktopAccountState(
                         offset = 0,
                     ).executeAsList()
 
-                    is ArticleFilter.Today -> account.articleRecords.byToday.all(
+                    is ArticleFilter.Today -> articleRecords.byToday.all(
                         status = currentFilter.todayStatus,
                         query = query,
                         since = since,
