@@ -37,4 +37,6 @@ class DesktopPreferences(
 
     val articleStatus: Preference<ArticleStatus>
         get() = preferenceStore.getEnum("article_status", ArticleStatus.UNREAD)
+
+    val aiOptions: DesktopAIOptions = DesktopAIOptions(preferenceStore)
 }

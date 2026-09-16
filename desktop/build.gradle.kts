@@ -23,6 +23,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.jsoup)
+    implementation(libs.okhttp.client)
+    implementation(libs.org.json)
 
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
@@ -39,7 +41,7 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe
             )
             packageName = "CapyReader"
-            packageVersion = "1.0.1234"
+            packageVersion = "1.0.1235"
             description = "Capy Reader - RSS Reader for Desktop"
             copyright = "© 2026 Capy Reader"
             vendor = "Capy Reader"

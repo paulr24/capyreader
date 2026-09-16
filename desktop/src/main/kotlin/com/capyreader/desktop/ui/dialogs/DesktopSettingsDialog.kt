@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
@@ -45,6 +46,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,10 +57,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.capyreader.desktop.model.DesktopAccountState
+import com.capyreader.desktop.storage.DesktopAIProvider
+import com.capyreader.desktop.storage.DesktopGeminiModels
 import com.jocmp.capy.accounts.AutoDelete
 import com.jocmp.capy.accounts.MaxArticles
 import com.jocmp.capy.accounts.Source
 import com.jocmp.capy.articles.SortOrder
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,6 +98,20 @@ fun DesktopSettingsDialog(
     var pruneStatusMessage by remember { mutableStateOf<String?>(null) }
     var isDeduplicating by remember { mutableStateOf(false) }
     var dedupStatusMessage by remember { mutableStateOf<String?>(null) }
+
+    val scope = rememberCoroutineScope()
+    val aiOptions = state.preferences.aiOptions
+    var aiEnabled by remember { mutableStateOf(aiOptions.enabled.get()) }
+    var aiProvider by remember { mutableStateOf(aiOptions.provider.get()) }
+    var geminiApiKey by remember { mutableStateOf(aiOptions.geminiApiKey.get()) }
+    var geminiModel by remember { mutableStateOf(aiOptions.geminiModel.get()) }
+    var openAiApiKey by remember { mutableStateOf(aiOptions.openAiApiKey.get()) }
+    var openAiEndpoint by remember { mutableStateOf(aiOptions.openAiEndpoint.get()) }
+    var openAiModel by remember { mutableStateOf(aiOptions.openAiModel.get()) }
+    var autoSummarize by remember { mutableStateOf(aiOptions.autoSummarize.get()) }
+    var isTestingConnection by remember { mutableStateOf(false) }
+    var testConnectionResult by remember { mutableStateOf<String?>(null) }
+    var clearCacheStatus by remember { mutableStateOf<String?>(null) }
 
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(
@@ -390,7 +409,254 @@ fun DesktopSettingsDialog(
                         )
                     }
 
-                    // SECTION 4: ACCOUNT DETAILS
+                    // SECTION 4: AI SUMMARIZATION
+                    SettingsSection(
+                        title = "AI Summarization & Q&A",
+                        icon = Icons.Default.AutoAwesome
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Enable AI Summarization",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Summarize articles and ask interactive questions using Google Gemini or OpenAI.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Switch(
+                                checked = aiEnabled,
+                                onCheckedChange = {
+                                    aiEnabled = it
+                                    aiOptions.enabled.set(it)
+                                }
+                            )
+                        }
+
+                        if (aiEnabled) {
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            val providerOptions = listOf(
+                                DesktopAIProvider.GEMINI to "Google Gemini (Recommended - Free Tier)",
+                                DesktopAIProvider.OPENAI_COMPATIBLE to "OpenAI-Compatible Service",
+                            )
+
+                            SettingsDropdown(
+                                label = "AI Provider",
+                                selected = aiProvider,
+                                options = providerOptions,
+                                onSelect = {
+                                    aiProvider = it
+                                    aiOptions.provider.set(it)
+                                }
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            if (aiProvider == DesktopAIProvider.GEMINI) {
+                                OutlinedTextField(
+                                    value = geminiApiKey,
+                                    onValueChange = {
+                                        geminiApiKey = it
+                                        aiOptions.geminiApiKey.set(it)
+                                    },
+                                    label = { Text("Gemini API Key") },
+                                    placeholder = { Text("AIzaSy...") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+
+                                Text(
+                                    text = "Get a free API key at aistudio.google.com",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                SettingsDropdown(
+                                    label = "Gemini Model",
+                                    subtitle = "Select model tier for speed and summary quality.",
+                                    selected = geminiModel,
+                                    options = DesktopGeminiModels.presets,
+                                    onSelect = {
+                                        geminiModel = it
+                                        aiOptions.geminiModel.set(it)
+                                    }
+                                )
+                            } else {
+                                OutlinedTextField(
+                                    value = openAiEndpoint,
+                                    onValueChange = {
+                                        openAiEndpoint = it
+                                        aiOptions.openAiEndpoint.set(it)
+                                    },
+                                    label = { Text("Endpoint URL") },
+                                    placeholder = { Text("https://api.openai.com/v1") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                OutlinedTextField(
+                                    value = openAiApiKey,
+                                    onValueChange = {
+                                        openAiApiKey = it
+                                        aiOptions.openAiApiKey.set(it)
+                                    },
+                                    label = { Text("OpenAI API Key") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                OutlinedTextField(
+                                    value = openAiModel,
+                                    onValueChange = {
+                                        openAiModel = it
+                                        aiOptions.openAiModel.set(it)
+                                    },
+                                    label = { Text("Model Name") },
+                                    placeholder = { Text("gpt-4o-mini") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Auto-Summarize Articles",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Automatically generate a summary when opening an article.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Switch(
+                                    checked = autoSummarize,
+                                    onCheckedChange = {
+                                        autoSummarize = it
+                                        aiOptions.autoSummarize.set(it)
+                                    }
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Test Connection",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (testConnectionResult != null) {
+                                        Text(
+                                            text = testConnectionResult!!,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = if (testConnectionResult!!.startsWith("Success") || testConnectionResult!!.contains("Connected")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                OutlinedButton(
+                                    onClick = {
+                                        if (!isTestingConnection) {
+                                            isTestingConnection = true
+                                            testConnectionResult = "Connecting..."
+                                            scope.launch {
+                                                val res = state.aiService.testConnection()
+                                                isTestingConnection = false
+                                                testConnectionResult = res.fold(
+                                                    onSuccess = { "Connected successfully!" },
+                                                    onFailure = { err -> "Failed: ${err.message}" }
+                                                )
+                                            }
+                                        }
+                                    },
+                                    enabled = !isTestingConnection && aiOptions.isConfigured(),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    if (isTestingConnection) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                    }
+                                    Text("Test Connection")
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Clear Cached Summaries",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (clearCacheStatus != null) {
+                                        Text(
+                                            text = clearCacheStatus!!,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                OutlinedButton(
+                                    onClick = {
+                                        scope.launch {
+                                            state.summaryRepository.clearAll()
+                                            clearCacheStatus = "Cache cleared"
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Clear Cache")
+                                }
+                            }
+                        }
+                    }
+
+                    // SECTION 5: ACCOUNT DETAILS
                     SettingsSection(
                         title = "Account",
                         icon = Icons.Default.AccountCircle

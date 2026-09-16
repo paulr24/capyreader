@@ -1,0 +1,553 @@
+package com.capyreader.desktop.ai
+
+import com.capyreader.desktop.storage.DesktopAIOptions
+import com.capyreader.desktop.storage.DesktopAIProvider
+import com.jocmp.capy.Article
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONObject
+import org.jsoup.Jsoup
+import java.io.BufferedReader
+import java.io.IOException
+import java.io.InputStreamReader
+import java.util.concurrent.TimeUnit
+
+class DesktopAISummarizerService(
+    private val aiOptions: DesktopAIOptions,
+    private val httpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .build(),
+) {
+    fun summarizeStream(article: Article): Flow<String> = flow {
+        val provider = aiOptions.provider.get()
+        val rawContent = article.content.ifBlank { article.summary }
+        val cleanContent = extractCleanText(rawContent)
+
+        if (cleanContent.isBlank()) {
+            throw IllegalStateException("Article content is empty")
+        }
+
+        val prompt = buildPrompt(
+            template = aiOptions.promptTemplate.get(),
+            title = article.title,
+            content = cleanContent,
+        )
+
+        when (provider) {
+            DesktopAIProvider.GEMINI -> streamGemini(
+                prompt = prompt,
+                model = aiOptions.geminiModel.get(),
+                apiKey = aiOptions.geminiApiKey.get()
+            ) { chunk -> emit(chunk) }
+
+            DesktopAIProvider.OPENAI_COMPATIBLE -> streamOpenAI(
+                prompt = prompt,
+                endpoint = aiOptions.openAiEndpoint.get(),
+                model = aiOptions.openAiModel.get(),
+                apiKey = aiOptions.openAiApiKey.get()
+            ) { chunk -> emit(chunk) }
+        }
+    }.flowOn(Dispatchers.IO)
+
+    fun askQuestionStream(
+        article: Article,
+        question: String,
+        history: List<DesktopChatMessage> = emptyList(),
+    ): Flow<String> = flow {
+        val provider = aiOptions.provider.get()
+        val rawContent = article.content.ifBlank { article.summary }
+        val cleanContent = extractCleanText(rawContent)
+
+        if (cleanContent.isBlank()) {
+            throw IllegalStateException("Article content is empty")
+        }
+
+        when (provider) {
+            DesktopAIProvider.GEMINI -> streamGeminiQuestion(
+                articleTitle = article.title,
+                articleContent = cleanContent,
+                question = question,
+                history = history,
+                model = aiOptions.geminiModel.get(),
+                apiKey = aiOptions.geminiApiKey.get()
+            ) { chunk -> emit(chunk) }
+
+            DesktopAIProvider.OPENAI_COMPATIBLE -> streamOpenAIQuestion(
+                articleTitle = article.title,
+                articleContent = cleanContent,
+                question = question,
+                history = history,
+                endpoint = aiOptions.openAiEndpoint.get(),
+                model = aiOptions.openAiModel.get(),
+                apiKey = aiOptions.openAiApiKey.get()
+            ) { chunk -> emit(chunk) }
+        }
+    }.flowOn(Dispatchers.IO)
+
+    suspend fun summarize(article: Article): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val provider = aiOptions.provider.get()
+            val rawContent = article.content.ifBlank { article.summary }
+            val cleanContent = extractCleanText(rawContent)
+
+            if (cleanContent.isBlank()) {
+                return@withContext Result.failure(IllegalStateException("Article content is empty"))
+            }
+
+            val prompt = buildPrompt(
+                template = aiOptions.promptTemplate.get(),
+                title = article.title,
+                content = cleanContent,
+            )
+
+            val summary = when (provider) {
+                DesktopAIProvider.GEMINI -> callGemini(
+                    prompt = prompt,
+                    model = aiOptions.geminiModel.get(),
+                    apiKey = aiOptions.geminiApiKey.get()
+                )
+                DesktopAIProvider.OPENAI_COMPATIBLE -> callOpenAI(
+                    prompt = prompt,
+                    endpoint = aiOptions.openAiEndpoint.get(),
+                    model = aiOptions.openAiModel.get(),
+                    apiKey = aiOptions.openAiApiKey.get()
+                )
+            }
+
+            Result.success(summary)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun testConnection(): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val provider = aiOptions.provider.get()
+            val testPrompt = "Please respond with 'Connected successfully' to confirm connectivity."
+
+            val result = when (provider) {
+                DesktopAIProvider.GEMINI -> callGemini(
+                    prompt = testPrompt,
+                    model = aiOptions.geminiModel.get(),
+                    apiKey = aiOptions.geminiApiKey.get()
+                )
+                DesktopAIProvider.OPENAI_COMPATIBLE -> callOpenAI(
+                    prompt = testPrompt,
+                    endpoint = aiOptions.openAiEndpoint.get(),
+                    model = aiOptions.openAiModel.get(),
+                    apiKey = aiOptions.openAiApiKey.get()
+                )
+            }
+
+            Result.success(result.trim())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun extractCleanText(html: String): String {
+        val parsed = Jsoup.parse(html).text()
+        return if (parsed.length > MAX_ARTICLE_TEXT_LENGTH) {
+            parsed.take(MAX_ARTICLE_TEXT_LENGTH) + "…"
+        } else {
+            parsed
+        }
+    }
+
+    private fun buildPrompt(template: String, title: String, content: String): String {
+        return if (template.contains("%title%") || template.contains("%content%")) {
+            template
+                .replace("%title%", title)
+                .replace("%content%", content)
+        } else {
+            "$template\n\nTitle: $title\n\n$content"
+        }
+    }
+
+    private fun buildGeminiRequestBody(prompt: String): String {
+        val partObject = JSONObject().apply {
+            put("text", prompt)
+        }
+        val partsArray = JSONArray().apply {
+            put(partObject)
+        }
+        val contentObject = JSONObject().apply {
+            put("parts", partsArray)
+        }
+        val contentsArray = JSONArray().apply {
+            put(contentObject)
+        }
+
+        val generationConfig = JSONObject().apply {
+            put("temperature", 0.3)
+            put("maxOutputTokens", 1000)
+        }
+
+        return JSONObject().apply {
+            put("contents", contentsArray)
+            put("generationConfig", generationConfig)
+        }.toString()
+    }
+
+    private inline fun streamGemini(
+        prompt: String,
+        model: String,
+        apiKey: String,
+        onChunk: (String) -> Unit,
+    ) {
+        executeGeminiStream(buildGeminiRequestBody(prompt), model, apiKey, onChunk)
+    }
+
+    private inline fun streamGeminiQuestion(
+        articleTitle: String,
+        articleContent: String,
+        question: String,
+        history: List<DesktopChatMessage>,
+        model: String,
+        apiKey: String,
+        onChunk: (String) -> Unit,
+    ) {
+        val contentsArray = JSONArray()
+
+        if (history.isEmpty()) {
+            val prompt = "You are a helpful reading assistant answering questions about the following article.\n\nArticle Title: $articleTitle\n\nArticle Content:\n$articleContent\n\nQuestion: $question\n\nPlease answer accurately, clearly, and concisely based strictly on the article's text. If the answer is not mentioned in the article, state that clearly."
+            contentsArray.put(JSONObject().apply {
+                put("role", "user")
+                put("parts", JSONArray().apply {
+                    put(JSONObject().apply { put("text", prompt) })
+                })
+            })
+        } else {
+            history.forEachIndexed { index, msg ->
+                val text = if (index == 0) {
+                    "You are a helpful reading assistant answering questions about the following article.\n\nArticle Title: $articleTitle\n\nArticle Content:\n$articleContent\n\nQuestion: ${msg.text}\n\nPlease answer accurately, clearly, and concisely based strictly on the article's text. If the answer is not mentioned in the article, state that clearly."
+                } else {
+                    msg.text
+                }
+                contentsArray.put(JSONObject().apply {
+                    put("role", if (msg.isUser) "user" else "model")
+                    put("parts", JSONArray().apply {
+                        put(JSONObject().apply { put("text", text) })
+                    })
+                })
+            }
+            contentsArray.put(JSONObject().apply {
+                put("role", "user")
+                put("parts", JSONArray().apply {
+                    put(JSONObject().apply { put("text", question) })
+                })
+            })
+        }
+
+        val generationConfig = JSONObject().apply {
+            put("temperature", 0.3)
+            put("maxOutputTokens", 1200)
+        }
+
+        val requestJson = JSONObject().apply {
+            put("contents", contentsArray)
+            put("generationConfig", generationConfig)
+        }.toString()
+
+        executeGeminiStream(requestJson, model, apiKey, onChunk)
+    }
+
+    private inline fun executeGeminiStream(
+        requestJson: String,
+        model: String,
+        apiKey: String,
+        onChunk: (String) -> Unit,
+    ) {
+        if (apiKey.isBlank()) {
+            throw IllegalArgumentException("Gemini API key is not configured")
+        }
+
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:streamGenerateContent?alt=sse&key=$apiKey"
+        val requestBody = requestJson.toRequestBody(JSON_MEDIA_TYPE)
+        val request = Request.Builder()
+            .url(url)
+            .post(requestBody)
+            .build()
+
+        val response = httpClient.newCall(request).execute()
+        if (!response.isSuccessful) {
+            val errBody = response.body?.string().orEmpty()
+            throw IOException(parseErrorMessage(errBody, "HTTP ${response.code}: ${response.message}"))
+        }
+
+        response.body?.source()?.let { source ->
+            val reader = BufferedReader(InputStreamReader(source.inputStream(), Charsets.UTF_8))
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                val currentLine = line ?: break
+                if (currentLine.startsWith("data: ")) {
+                    val jsonStr = currentLine.removePrefix("data: ").trim()
+                    if (jsonStr.isNotBlank() && jsonStr != "[DONE]") {
+                        try {
+                            val json = JSONObject(jsonStr)
+                            val candidates = json.optJSONArray("candidates")
+                            if (candidates != null && candidates.length() > 0) {
+                                val content = candidates.getJSONObject(0).optJSONObject("content")
+                                val parts = content?.optJSONArray("parts")
+                                if (parts != null && parts.length() > 0) {
+                                    val text = parts.getJSONObject(0).optString("text")
+                                    if (text.isNotEmpty()) {
+                                        onChunk(text)
+                                    }
+                                }
+                            }
+                        } catch (_: Exception) {
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private inline fun streamOpenAI(
+        prompt: String,
+        endpoint: String,
+        model: String,
+        apiKey: String,
+        onChunk: (String) -> Unit,
+    ) {
+        val messageObject = JSONObject().apply {
+            put("role", "user")
+            put("content", prompt)
+        }
+        val messagesArray = JSONArray().apply {
+            put(messageObject)
+        }
+
+        val requestJson = JSONObject().apply {
+            put("model", model)
+            put("messages", messagesArray)
+            put("temperature", 0.3)
+            put("max_tokens", 1000)
+            put("stream", true)
+        }.toString()
+
+        executeOpenAIStream(requestJson, endpoint, apiKey, onChunk)
+    }
+
+    private inline fun streamOpenAIQuestion(
+        articleTitle: String,
+        articleContent: String,
+        question: String,
+        history: List<DesktopChatMessage>,
+        endpoint: String,
+        model: String,
+        apiKey: String,
+        onChunk: (String) -> Unit,
+    ) {
+        val messagesArray = JSONArray().apply {
+            put(JSONObject().apply {
+                put("role", "system")
+                put("content", "You are a helpful reading assistant answering questions about the following article.\n\nArticle Title: $articleTitle\n\nArticle Content:\n$articleContent\n\nPlease answer accurately, clearly, and concisely based strictly on the article's text. If the answer is not mentioned in the article, state that clearly.")
+            })
+            history.forEach { msg ->
+                put(JSONObject().apply {
+                    put("role", if (msg.isUser) "user" else "assistant")
+                    put("content", msg.text)
+                })
+            }
+            put(JSONObject().apply {
+                put("role", "user")
+                put("content", question)
+            })
+        }
+
+        val requestJson = JSONObject().apply {
+            put("model", model)
+            put("messages", messagesArray)
+            put("temperature", 0.3)
+            put("max_tokens", 1200)
+            put("stream", true)
+        }.toString()
+
+        executeOpenAIStream(requestJson, endpoint, apiKey, onChunk)
+    }
+
+    private inline fun executeOpenAIStream(
+        requestJson: String,
+        endpoint: String,
+        apiKey: String,
+        onChunk: (String) -> Unit,
+    ) {
+        if (apiKey.isBlank()) {
+            throw IllegalArgumentException("API key is not configured")
+        }
+
+        val baseUrl = endpoint.trim().trimEnd('/')
+        val url = if (baseUrl.endsWith("/chat/completions")) {
+            baseUrl
+        } else {
+            "$baseUrl/chat/completions"
+        }
+
+        val requestBody = requestJson.toRequestBody(JSON_MEDIA_TYPE)
+        val request = Request.Builder()
+            .url(url)
+            .addHeader("Authorization", "Bearer $apiKey")
+            .post(requestBody)
+            .build()
+
+        val response = httpClient.newCall(request).execute()
+        if (!response.isSuccessful) {
+            val errBody = response.body?.string().orEmpty()
+            throw IOException(parseErrorMessage(errBody, "HTTP ${response.code}: ${response.message}"))
+        }
+
+        response.body?.source()?.let { source ->
+            val reader = BufferedReader(InputStreamReader(source.inputStream(), Charsets.UTF_8))
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                val currentLine = line ?: break
+                if (currentLine.startsWith("data: ")) {
+                    val jsonStr = currentLine.removePrefix("data: ").trim()
+                    if (jsonStr == "[DONE]") break
+                    if (jsonStr.isNotBlank()) {
+                        try {
+                            val json = JSONObject(jsonStr)
+                            val choices = json.optJSONArray("choices")
+                            if (choices != null && choices.length() > 0) {
+                                val delta = choices.getJSONObject(0).optJSONObject("delta")
+                                val text = delta?.optString("content").orEmpty()
+                                if (text.isNotEmpty()) {
+                                    onChunk(text)
+                                }
+                            }
+                        } catch (_: Exception) {
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun callGemini(prompt: String, model: String, apiKey: String): String {
+        if (apiKey.isBlank()) {
+            throw IllegalArgumentException("Gemini API key is not configured")
+        }
+
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
+        val requestBody = buildGeminiRequestBody(prompt).toRequestBody(JSON_MEDIA_TYPE)
+        val request = Request.Builder()
+            .url(url)
+            .post(requestBody)
+            .build()
+
+        val response = httpClient.newCall(request).execute()
+        val responseBody = response.body?.string().orEmpty()
+
+        if (!response.isSuccessful) {
+            val errorMessage = parseErrorMessage(responseBody, defaultMessage = "HTTP ${response.code}: ${response.message}")
+            throw IOException(errorMessage)
+        }
+
+        val json = JSONObject(responseBody)
+        val candidates = json.optJSONArray("candidates")
+        if (candidates != null && candidates.length() > 0) {
+            val candidate = candidates.getJSONObject(0)
+            val content = candidate.optJSONObject("content")
+            val parts = content?.optJSONArray("parts")
+            if (parts != null && parts.length() > 0) {
+                val text = parts.getJSONObject(0).optString("text")
+                if (text.isNotBlank()) {
+                    return text
+                }
+            }
+        }
+
+        throw IOException("No summary content generated by Gemini")
+    }
+
+    private fun callOpenAI(
+        prompt: String,
+        endpoint: String,
+        model: String,
+        apiKey: String,
+    ): String {
+        if (apiKey.isBlank()) {
+            throw IllegalArgumentException("API key is not configured")
+        }
+
+        val baseUrl = endpoint.trim().trimEnd('/')
+        val url = if (baseUrl.endsWith("/chat/completions")) {
+            baseUrl
+        } else {
+            "$baseUrl/chat/completions"
+        }
+
+        val messageObject = JSONObject().apply {
+            put("role", "user")
+            put("content", prompt)
+        }
+        val messagesArray = JSONArray().apply {
+            put(messageObject)
+        }
+
+        val requestJson = JSONObject().apply {
+            put("model", model)
+            put("messages", messagesArray)
+            put("temperature", 0.3)
+            put("max_tokens", 1000)
+        }
+
+        val requestBody = requestJson.toString().toRequestBody(JSON_MEDIA_TYPE)
+        val request = Request.Builder()
+            .url(url)
+            .addHeader("Authorization", "Bearer $apiKey")
+            .post(requestBody)
+            .build()
+
+        val response = httpClient.newCall(request).execute()
+        val responseBody = response.body?.string().orEmpty()
+
+        if (!response.isSuccessful) {
+            val errorMessage = parseErrorMessage(responseBody, defaultMessage = "HTTP ${response.code}: ${response.message}")
+            throw IOException(errorMessage)
+        }
+
+        val json = JSONObject(responseBody)
+        val choices = json.optJSONArray("choices")
+        if (choices != null && choices.length() > 0) {
+            val choice = choices.getJSONObject(0)
+            val message = choice.optJSONObject("message")
+            val text = message?.optString("content").orEmpty()
+            if (text.isNotBlank()) {
+                return text
+            }
+        }
+
+        throw IOException("No summary content generated by AI service")
+    }
+
+    private fun parseErrorMessage(responseBody: String, defaultMessage: String): String {
+        return try {
+            val json = JSONObject(responseBody)
+            if (json.has("error")) {
+                val errorObj = json.optJSONObject("error")
+                errorObj?.optString("message") ?: json.optString("error")
+            } else {
+                defaultMessage
+            }
+        } catch (_: Exception) {
+            defaultMessage
+        }
+    }
+
+    companion object {
+        private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+        private const val MAX_ARTICLE_TEXT_LENGTH = 15000
+    }
+}

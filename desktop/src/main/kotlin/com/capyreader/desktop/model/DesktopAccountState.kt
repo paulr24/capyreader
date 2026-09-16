@@ -1,5 +1,7 @@
 package com.capyreader.desktop.model
 
+import com.capyreader.desktop.ai.DesktopAISummarizerService
+import com.capyreader.desktop.ai.DesktopArticleSummaryRepository
 import com.capyreader.desktop.storage.DesktopDatabaseProvider
 import com.capyreader.desktop.storage.DesktopPaths
 import com.capyreader.desktop.storage.DesktopPreferenceStoreProvider
@@ -36,6 +38,8 @@ class DesktopAccountState(
 ) {
     val databaseProvider = DesktopDatabaseProvider()
     val preferenceStoreProvider = DesktopPreferenceStoreProvider()
+    val summaryRepository = DesktopArticleSummaryRepository()
+    val aiService = DesktopAISummarizerService(aiOptions = preferences.aiOptions)
 
     val accountManager = AccountManager(
         rootFolder = DesktopPaths.accountsDir.toURI(),

@@ -46,6 +46,7 @@ import java.time.format.FormatStyle
 @Composable
 fun DesktopArticleReader(
     state: DesktopAccountState,
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val selectedArticle by state.selectedArticle.collectAsState()
@@ -174,7 +175,17 @@ fun DesktopArticleReader(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // AI Summary Card
+                    DesktopAISummaryCard(
+                        article = article,
+                        state = state,
+                        onOpenSettings = onOpenSettings,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
                     Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                     Spacer(modifier = Modifier.height(16.dp))
 

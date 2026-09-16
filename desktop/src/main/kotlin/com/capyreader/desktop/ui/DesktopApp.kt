@@ -154,6 +154,7 @@ fun DesktopApp() {
                 // Right pane: Article Reader
                 DesktopArticleReader(
                     state = state,
+                    onOpenSettings = { showSettingsDialog = true },
                     modifier = Modifier.weight(1f)
                 )
             }
