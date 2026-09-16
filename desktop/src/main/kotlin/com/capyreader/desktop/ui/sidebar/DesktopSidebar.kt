@@ -137,17 +137,21 @@ fun DesktopSidebar(
                     icon = Icons.Default.Article,
                     title = "All Articles",
                     badge = if (unreadCount > 0) unreadCount.toString() else null,
-                    isSelected = currentFilter is ArticleFilter.Articles,
-                    onClick = { state.setFilter(ArticleFilter.default()) }
+                    isSelected = currentFilter is ArticleFilter.Articles && currentStatus != ArticleStatus.STARRED,
+                    onClick = {
+                        val targetStatus = if (currentStatus == ArticleStatus.STARRED) ArticleStatus.UNREAD else currentStatus
+                        state.setStatus(targetStatus)
+                        state.setFilter(ArticleFilter.Articles(targetStatus))
+                    }
                 )
 
                 SidebarItem(
                     icon = Icons.Default.Star,
                     title = "Starred",
-                    isSelected = currentStatus == ArticleStatus.STARRED,
+                    isSelected = currentFilter is ArticleFilter.Articles && currentStatus == ArticleStatus.STARRED,
                     onClick = {
                         state.setStatus(ArticleStatus.STARRED)
-                        state.setFilter(ArticleFilter.default().withStatus(ArticleStatus.STARRED))
+                        state.setFilter(ArticleFilter.Articles(ArticleStatus.STARRED))
                     }
                 )
 

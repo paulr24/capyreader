@@ -133,7 +133,9 @@ class DesktopAccountState(
 
     fun setStatus(newStatus: ArticleStatus) {
         _status.value = newStatus
+        _filter.value = _filter.value.withStatus(newStatus)
         preferences.articleStatus.set(newStatus)
+        preferences.filter.set(_filter.value)
         refreshArticles()
     }
 
@@ -219,14 +221,14 @@ class DesktopAccountState(
             if (currentSelected != null) {
                 _selectedArticle.value = list.firstOrNull { it.id == currentSelected.id } ?: list.firstOrNull()
             } else if (list.isNotEmpty()) {
-                selectArticle(list.first())
+                selectArticle(list.first(), markAsRead = false)
             }
         }
     }
 
-    fun selectArticle(article: Article) {
+    fun selectArticle(article: Article, markAsRead: Boolean = true) {
         _selectedArticle.value = article
-        if (!article.read) {
+        if (markAsRead && !article.read) {
             val account = _currentAccount.value ?: return
             scope.launch(Dispatchers.IO) {
                 account.markRead(article.id)

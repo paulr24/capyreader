@@ -1,10 +1,12 @@
 package com.capyreader.desktop.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -136,9 +138,11 @@ fun DesktopApp() {
                     onOpenSettings = { showSettingsDialog = true }
                 )
 
-                Divider(
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                    modifier = Modifier.fillMaxHeight()
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(1.dp)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                 )
 
                 // Middle pane: Article List
@@ -146,9 +150,11 @@ fun DesktopApp() {
                     state = state
                 )
 
-                Divider(
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                    modifier = Modifier.fillMaxHeight()
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(1.dp)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                 )
 
                 // Right pane: Article Reader
