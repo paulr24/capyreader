@@ -39,4 +39,10 @@ class DesktopPreferences(
         get() = preferenceStore.getEnum("article_status", ArticleStatus.UNREAD)
 
     val aiOptions: DesktopAIOptions = DesktopAIOptions(preferenceStore)
+
+    val themeMode: Preference<DesktopThemeMode>
+        get() = preferenceStore.getEnum("app_theme_mode", DesktopThemeMode.default)
+
+    val fontFamily: Preference<DesktopFontFamily>
+        get() = preferenceStore.getEnum("app_font_family", DesktopFontFamily.default)
 }

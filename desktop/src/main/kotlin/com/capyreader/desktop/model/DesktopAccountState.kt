@@ -107,7 +107,7 @@ class DesktopAccountState(
 
         // Observe feeds and folders
         scope.launch {
-            account.allFeeds.collect { feedsList ->
+            account.feeds.collect { feedsList ->
                 _feeds.value = feedsList
             }
         }

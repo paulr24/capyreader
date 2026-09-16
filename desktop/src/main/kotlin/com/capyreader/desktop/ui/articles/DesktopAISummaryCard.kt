@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.capyreader.desktop.ai.DesktopChatMessage
 import com.capyreader.desktop.model.DesktopAccountState
+import com.capyreader.desktop.ui.components.DesktopMarkdownFormatter
 import com.jocmp.capy.Article
 import kotlinx.coroutines.launch
 import java.awt.Toolkit
@@ -330,7 +331,7 @@ fun DesktopAISummaryCard(
                         !summaryText.isNullOrBlank() -> {
                             SelectionContainer {
                                 Text(
-                                    text = summaryText!!,
+                                    text = DesktopMarkdownFormatter.parseMarkdown(summaryText!!),
                                     style = MaterialTheme.typography.bodyMedium,
                                     lineHeight = 22.sp,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -464,7 +465,7 @@ fun DesktopAISummaryCard(
                                                         )
                                                         SelectionContainer {
                                                             Text(
-                                                                text = msg.text.ifBlank { "..." },
+                                                                text = DesktopMarkdownFormatter.parseMarkdown(msg.text.ifBlank { "..." }),
                                                                 style = MaterialTheme.typography.bodySmall,
                                                                 color = MaterialTheme.colorScheme.onSurface
                                                             )

@@ -21,7 +21,9 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
+import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tune
@@ -41,6 +43,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -57,8 +60,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.capyreader.desktop.model.DesktopAccountState
+import com.capyreader.desktop.storage.DEFAULT_DESKTOP_AI_PROMPT_TEMPLATE
 import com.capyreader.desktop.storage.DesktopAIProvider
+import com.capyreader.desktop.storage.DesktopFontFamily
 import com.capyreader.desktop.storage.DesktopGeminiModels
+import com.capyreader.desktop.storage.DesktopThemeMode
 import com.jocmp.capy.accounts.AutoDelete
 import com.jocmp.capy.accounts.MaxArticles
 import com.jocmp.capy.accounts.Source
@@ -92,6 +98,15 @@ fun DesktopSettingsDialog(
     }
     var sortOrder by remember {
         mutableStateOf(state.preferences.sortOrder.get())
+    }
+    var themeMode by remember {
+        mutableStateOf(state.preferences.themeMode.get())
+    }
+    var fontFamily by remember {
+        mutableStateOf(state.preferences.fontFamily.get())
+    }
+    var promptTemplate by remember {
+        mutableStateOf(aiOptions.promptTemplate.get())
     }
 
     var isPruning by remember { mutableStateOf(false) }
@@ -387,11 +402,52 @@ fun DesktopSettingsDialog(
                         }
                     }
 
-                    // SECTION 3: READING & DISPLAY
+                    // SECTION 3: APPEARANCE & DISPLAY
                     SettingsSection(
-                        title = "Reading & Display",
-                        icon = Icons.Default.Tune
+                        title = "Appearance & Display",
+                        icon = Icons.Default.Palette
                     ) {
+                        val themeOptions = listOf(
+                            DesktopThemeMode.SYSTEM to "System Default",
+                            DesktopThemeMode.LIGHT to "Light",
+                            DesktopThemeMode.DARK to "Dark",
+                            DesktopThemeMode.SEPIA to "Sepia (Warm Paper)",
+                            DesktopThemeMode.BLACK to "Pure Black (OLED)",
+                        )
+
+                        SettingsDropdown(
+                            label = "Theme",
+                            subtitle = "Visual theme and color scheme for the application.",
+                            selected = themeMode,
+                            options = themeOptions,
+                            onSelect = {
+                                themeMode = it
+                                state.preferences.themeMode.set(it)
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        val fontOptions = listOf(
+                            DesktopFontFamily.SYSTEM_DEFAULT to "System Default",
+                            DesktopFontFamily.SANS_SERIF to "Sans-Serif (Modern / Clean)",
+                            DesktopFontFamily.SERIF to "Serif (Book / Editorial)",
+                            DesktopFontFamily.MONOSPACE to "Monospace (Technical / Code)",
+                        )
+
+                        SettingsDropdown(
+                            label = "Font Family",
+                            subtitle = "Typography typeface used across articles and reader UI.",
+                            selected = fontFamily,
+                            options = fontOptions,
+                            onSelect = {
+                                fontFamily = it
+                                state.preferences.fontFamily.set(it)
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         val sortOrderOptions = listOf(
                             SortOrder.NEWEST_FIRST to "Newest First",
                             SortOrder.OLDEST_FIRST to "Oldest First",
@@ -569,6 +625,46 @@ fun DesktopSettingsDialog(
 
                             Spacer(modifier = Modifier.height(14.dp))
 
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = "Summary Prompt Template",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Custom prompt template sent to the AI. Use %title% and %content% placeholders.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(bottom = 6.dp)
+                                )
+                                OutlinedTextField(
+                                    value = promptTemplate,
+                                    onValueChange = {
+                                        promptTemplate = it
+                                        aiOptions.promptTemplate.set(it)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(min = 100.dp, max = 220.dp),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    TextButton(
+                                        onClick = {
+                                            promptTemplate = DEFAULT_DESKTOP_AI_PROMPT_TEMPLATE
+                                            aiOptions.promptTemplate.set(DEFAULT_DESKTOP_AI_PROMPT_TEMPLATE)
+                                        }
+                                    ) {
+                                        Text("Reset to Default Prompt")
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -656,7 +752,27 @@ fun DesktopSettingsDialog(
                         }
                     }
 
-                    // SECTION 5: ACCOUNT DETAILS
+                    // SECTION 5: KEYBOARD SHORTCUTS
+                    SettingsSection(
+                        title = "Keyboard Shortcuts",
+                        icon = Icons.Default.Keyboard
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ShortcutRow(key = "J  /  ↓", description = "Select next article in list")
+                            ShortcutRow(key = "K  /  ↑", description = "Select previous article in list")
+                            ShortcutRow(key = "M", description = "Toggle read / unread status")
+                            ShortcutRow(key = "S", description = "Toggle starred status")
+                            ShortcutRow(key = "D", description = "Scan & clean up duplicate articles now")
+                            ShortcutRow(key = "R", description = "Refresh feeds")
+                            ShortcutRow(key = "O", description = "Open article in default web browser")
+                            ShortcutRow(key = ",", description = "Open Settings dialog")
+                        }
+                    }
+
+                    // SECTION 6: ACCOUNT DETAILS
                     SettingsSection(
                         title = "Account",
                         icon = Icons.Default.AccountCircle
@@ -892,3 +1008,32 @@ private fun sourceDisplayName(source: Source): String {
         Source.LOCAL -> "Local RSS"
     }
 }
+
+@Composable
+private fun ShortcutRow(key: String, description: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            shape = RoundedCornerShape(4.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.padding(vertical = 2.dp)
+        ) {
+            Text(
+                text = key,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+

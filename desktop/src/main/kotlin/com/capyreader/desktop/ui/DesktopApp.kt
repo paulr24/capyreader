@@ -71,7 +71,13 @@ fun DesktopApp() {
         focusRequester.requestFocus()
     }
 
-    DesktopTheme {
+    val themeMode by state.preferences.themeMode.changes().collectAsState(state.preferences.themeMode.get())
+    val fontFamily by state.preferences.fontFamily.changes().collectAsState(state.preferences.fontFamily.get())
+
+    DesktopTheme(
+        themeMode = themeMode,
+        fontFamily = fontFamily
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -84,13 +90,13 @@ fun DesktopApp() {
                         val currentIndex = articles.indexOfFirst { it.id == selected?.id }
 
                         when (event.key) {
-                            Key.J -> {
+                            Key.J, Key.DirectionDown -> {
                                 if (currentIndex in 0 until articles.size - 1) {
                                     state.selectArticle(articles[currentIndex + 1])
                                     true
                                 } else false
                             }
-                            Key.K -> {
+                            Key.K, Key.DirectionUp -> {
                                 if (currentIndex > 0) {
                                     state.selectArticle(articles[currentIndex - 1])
                                     true
