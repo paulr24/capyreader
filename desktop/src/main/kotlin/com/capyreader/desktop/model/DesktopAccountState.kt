@@ -240,8 +240,9 @@ class DesktopAccountState(
         }
     }
 
-    fun selectArticle(article: Article, markAsRead: Boolean = true) {
+    fun selectArticle(article: Article?, markAsRead: Boolean = true) {
         _selectedArticle.value = article
+        if (article == null) return
         if (markAsRead && !article.read) {
             val account = _currentAccount.value ?: return
             scope.launch(Dispatchers.IO) {
@@ -255,6 +256,10 @@ class DesktopAccountState(
                 }
             }
         }
+    }
+
+    fun clearSelectedArticle() {
+        _selectedArticle.value = null
     }
 
     fun toggleStarred(article: Article) {
