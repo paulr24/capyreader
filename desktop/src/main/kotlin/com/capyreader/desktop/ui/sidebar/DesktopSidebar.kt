@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.RssFeed
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,6 +62,7 @@ fun DesktopSidebar(
     state: DesktopAccountState,
     onOpenAddFeed: () -> Unit,
     onOpenLogin: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currentFilter by state.filter.collectAsState()
@@ -95,22 +97,35 @@ fun DesktopSidebar(
                         color = MaterialTheme.colorScheme.primary
                     )
 
-                    IconButton(
-                        onClick = { state.syncAndRefresh() },
-                        enabled = !isRefreshing && account != null
-                    ) {
-                        if (isRefreshing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = onOpenSettings,
+                            enabled = account != null
+                        ) {
                             Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Refresh",
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+
+                        IconButton(
+                            onClick = { state.syncAndRefresh() },
+                            enabled = !isRefreshing && account != null
+                        ) {
+                            if (isRefreshing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Refresh",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -272,6 +287,18 @@ fun DesktopSidebar(
                         Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Add Feed")
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    OutlinedButton(
+                        onClick = onOpenSettings,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Settings")
                     }
 
                     Spacer(modifier = Modifier.height(6.dp))

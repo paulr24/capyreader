@@ -32,6 +32,7 @@ import com.capyreader.desktop.ui.articles.DesktopArticleList
 import com.capyreader.desktop.ui.articles.DesktopArticleReader
 import com.capyreader.desktop.ui.dialogs.DesktopAddFeedDialog
 import com.capyreader.desktop.ui.dialogs.DesktopLoginDialog
+import com.capyreader.desktop.ui.dialogs.DesktopSettingsDialog
 import com.capyreader.desktop.ui.sidebar.DesktopSidebar
 import com.capyreader.desktop.ui.theme.DesktopTheme
 import java.awt.Desktop
@@ -46,6 +47,7 @@ fun DesktopApp() {
 
     var showLoginDialog by remember { mutableStateOf(false) }
     var showAddFeedDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val focusRequester = remember { FocusRequester() }
@@ -116,6 +118,10 @@ fun DesktopApp() {
                                 }
                                 true
                             }
+                            Key.Comma -> {
+                                showSettingsDialog = true
+                                true
+                            }
                             else -> false
                         }
                     } else false
@@ -126,7 +132,8 @@ fun DesktopApp() {
                 DesktopSidebar(
                     state = state,
                     onOpenAddFeed = { showAddFeedDialog = true },
-                    onOpenLogin = { showLoginDialog = true }
+                    onOpenLogin = { showLoginDialog = true },
+                    onOpenSettings = { showSettingsDialog = true }
                 )
 
                 Divider(
@@ -167,6 +174,17 @@ fun DesktopApp() {
                 DesktopAddFeedDialog(
                     state = state,
                     onDismissRequest = { showAddFeedDialog = false }
+                )
+            }
+
+            if (showSettingsDialog) {
+                DesktopSettingsDialog(
+                    state = state,
+                    onDismissRequest = { showSettingsDialog = false },
+                    onOpenLogin = {
+                        showSettingsDialog = false
+                        showLoginDialog = true
+                    }
                 )
             }
         }

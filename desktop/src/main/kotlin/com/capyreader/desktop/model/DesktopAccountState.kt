@@ -12,8 +12,10 @@ import com.jocmp.capy.ArticleStatus
 import com.jocmp.capy.Feed
 import com.jocmp.capy.FeedPriority
 import com.jocmp.capy.Folder
+import com.jocmp.capy.accounts.AutoDelete
 import com.jocmp.capy.accounts.Credentials
 import com.jocmp.capy.accounts.FaviconPolicy
+import com.jocmp.capy.accounts.MaxArticles
 import com.jocmp.capy.accounts.Source
 import com.jocmp.capy.accounts.withFreshRSSPath
 import com.jocmp.capy.articles.SortOrder
@@ -89,6 +91,13 @@ class DesktopAccountState(
     }
 
     private fun setAccount(account: Account) {
+        if (!account.preferences.maxArticles.isSet()) {
+            account.preferences.maxArticles.set(MaxArticles.LIMIT_5000)
+        }
+        scope.launch(Dispatchers.IO) {
+            account.pruneExcessArticles()
+        }
+
         _currentAccount.value = account
         preferences.accountID.set(account.id)
 
@@ -329,6 +338,7 @@ class DesktopAccountState(
                 )
 
                 val account = accountManager.findByID(id) ?: error("Failed to load created account")
+                account.preferences.maxArticles.set(MaxArticles.LIMIT_5000)
                 withContext(Dispatchers.Main) {
                     setAccount(account)
                     onSuccess()
@@ -384,6 +394,62 @@ class DesktopAccountState(
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    fun updateMaxArticles(maxArticles: MaxArticles) {
+        val account = _currentAccount.value ?: return
+        account.preferences.maxArticles.set(maxArticles)
+        scope.launch(Dispatchers.IO) {
+            account.pruneExcessArticles()
+            refreshArticles()
+        }
+    }
+
+    fun updateAutoDelete(autoDelete: AutoDelete) {
+        val account = _currentAccount.value ?: return
+        account.preferences.autoDelete.set(autoDelete)
+    }
+
+    fun updateDeduplicationEnabled(enabled: Boolean) {
+        val account = _currentAccount.value ?: return
+        account.preferences.deduplicationEnabled.set(enabled)
+    }
+
+    fun updateDeduplicationThreshold(threshold: Int) {
+        val account = _currentAccount.value ?: return
+        account.preferences.deduplicationThreshold.set(threshold)
+    }
+
+    fun updateDeduplicationTimeWindowHours(hours: Int) {
+        val account = _currentAccount.value ?: return
+        account.preferences.deduplicationTimeWindowHours.set(hours)
+    }
+
+    fun updateSortOrder(sortOrder: SortOrder) {
+        preferences.sortOrder.set(sortOrder)
+        refreshArticles()
+    }
+
+    fun pruneExcessArticles(onComplete: () -> Unit = {}) {
+        val account = _currentAccount.value ?: return
+        scope.launch(Dispatchers.IO) {
+            account.pruneExcessArticles()
+            refreshArticles()
+            withContext(Dispatchers.Main) {
+                onComplete()
+            }
+        }
+    }
+
+    fun deduplicateNow(onComplete: (Int) -> Unit = {}) {
+        val account = _currentAccount.value ?: return
+        scope.launch(Dispatchers.IO) {
+            val result = account.deduplicateArticles()
+            refreshArticles()
+            withContext(Dispatchers.Main) {
+                onComplete(result.duplicateIDs.size)
+            }
+        }
     }
 
     private fun normalizeServerUrl(rawUrl: String, source: Source): String {
