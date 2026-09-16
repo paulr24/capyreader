@@ -83,84 +83,7 @@ fun DesktopApp() {
         accentColorHex = accentColor
     ) {
         BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .focusRequester(focusRequester)
-                .focusable()
-                .onPreviewKeyEvent { event ->
-                    if (event.type == KeyEventType.KeyDown) {
-                        val articles = state.articles.value
-                        val selected = state.selectedArticle.value
-                        val currentIndex = articles.indexOfFirst { it.id == selected?.id }
-
-                        when (event.key) {
-                            Key.J, Key.DirectionDown -> {
-                                if (currentIndex in 0 until articles.size - 1) {
-                                    state.selectArticle(articles[currentIndex + 1])
-                                    true
-                                } else false
-                            }
-                            Key.K, Key.DirectionUp -> {
-                                if (currentIndex > 0) {
-                                    state.selectArticle(articles[currentIndex - 1])
-                                    true
-                                } else false
-                            }
-                            Key.M -> {
-                                selected?.let { state.toggleRead(it) }
-                                true
-                            }
-                            Key.S -> {
-                                selected?.let { state.toggleStarred(it) }
-                                true
-                            }
-                            Key.A, Key.X -> {
-                                selected?.let { article ->
-                                    if (state.preferences.aiOptions.enabled.get()) {
-                                        state.triggerAISummary(article.id)
-                                    } else {
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("Enable AI Summarization in Settings to generate summaries.")
-                                        }
-                                    }
-                                }
-                                true
-                            }
-                            Key.Backslash -> {
-                                val currentlyOpen = userSidebarOpen ?: (maxWidth >= 1020.dp)
-                                userSidebarOpen = !currentlyOpen
-                                true
-                            }
-                            Key.Escape -> {
-                                if (maxWidth < 720.dp && selected != null) {
-                                    state.selectArticle(null)
-                                    true
-                                } else false
-                            }
-                            Key.D -> {
-                                selected?.let { state.dislikeArticle(it) }
-                                true
-                            }
-                            Key.R -> {
-                                state.syncAndRefresh()
-                                true
-                            }
-                            Key.O -> {
-                                selected?.url?.let {
-                                    try {
-                                        Desktop.getDesktop().browse(URI.create(it.toString()))
-                                    } catch (_: Exception) {}
-                                }
-                                true
-                            }
-                            Key.Comma -> {
-                                showSettingsDialog = true
-                                true
-                            }
-                            else -> false
-                        }
-                    } else false
-                }
+            modifier = Modifier.fillMaxSize()
         ) {
             val screenWidth = maxWidth
             val isWide = screenWidth >= 1020.dp
@@ -176,7 +99,86 @@ fun DesktopApp() {
                 else -> userSidebarOpen ?: true
             }
 
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .focusRequester(focusRequester)
+                    .focusable()
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown) {
+                            val articles = state.articles.value
+                            val selected = state.selectedArticle.value
+                            val currentIndex = articles.indexOfFirst { it.id == selected?.id }
+
+                            when (event.key) {
+                                Key.J, Key.DirectionDown -> {
+                                    if (currentIndex in 0 until articles.size - 1) {
+                                        state.selectArticle(articles[currentIndex + 1])
+                                        true
+                                    } else false
+                                }
+                                Key.K, Key.DirectionUp -> {
+                                    if (currentIndex > 0) {
+                                        state.selectArticle(articles[currentIndex - 1])
+                                        true
+                                    } else false
+                                }
+                                Key.M -> {
+                                    selected?.let { state.toggleRead(it) }
+                                    true
+                                }
+                                Key.S -> {
+                                    selected?.let { state.toggleStarred(it) }
+                                    true
+                                }
+                                Key.A, Key.X -> {
+                                    selected?.let { article ->
+                                        if (state.preferences.aiOptions.enabled.get()) {
+                                            state.triggerAISummary(article.id)
+                                        } else {
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("Enable AI Summarization in Settings to generate summaries.")
+                                            }
+                                        }
+                                    }
+                                    true
+                                }
+                                Key.Backslash -> {
+                                    val currentlyOpen = userSidebarOpen ?: isWide
+                                    userSidebarOpen = !currentlyOpen
+                                    true
+                                }
+                                Key.Escape -> {
+                                    if (isNarrow && selected != null) {
+                                        state.clearSelectedArticle()
+                                        true
+                                    } else false
+                                }
+                                Key.D -> {
+                                    selected?.let { state.dislikeArticle(it) }
+                                    true
+                                }
+                                Key.R -> {
+                                    state.syncAndRefresh()
+                                    true
+                                }
+                                Key.O -> {
+                                    selected?.url?.let {
+                                        try {
+                                            Desktop.getDesktop().browse(URI.create(it.toString()))
+                                        } catch (_: Exception) {}
+                                    }
+                                    true
+                                }
+                                Key.Comma -> {
+                                    showSettingsDialog = true
+                                    true
+                                }
+                                else -> false
+                            }
+                        } else false
+                    }
+            ) {
                 if (isNarrow) {
                     // NARROW SCREEN (Mobile / Compact):
                     // If an article is open, collapse panes 1 & 2 completely, giving 100% width to ArticleReader!
@@ -184,7 +186,7 @@ fun DesktopApp() {
                         DesktopArticleReader(
                             state = state,
                             showBackButton = true,
-                            onBack = { state.selectArticle(null) },
+                            onBack = { state.clearSelectedArticle() },
                             showSidebarToggle = false,
                             onOpenSettings = { showSettingsDialog = true },
                             modifier = Modifier.fillMaxSize()
