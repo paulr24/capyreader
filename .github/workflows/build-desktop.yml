@@ -1,0 +1,64 @@
+name: Build Windows Desktop App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows Desktop Installer
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Desktop Distribution
+        run: ./gradlew :desktop:packageDistributionForCurrentOS --no-daemon
+
+      - name: Prepare Installers for Release
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-desktop
+          Get-ChildItem -Path desktop/build/compose/binaries/main -Recurse -Include *.msi, *.exe | ForEach-Object {
+              Copy-Item $_.FullName -Destination "release-desktop/$($_.Name)" -Force
+              Write-Host "Found installer: $($_.FullName) -> release-desktop/$($_.Name)"
+          }
+
+      - name: Upload Desktop Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: capy-reader-windows
+          path: release-desktop/*
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ai-summary-latest
+          name: "Capy Reader with AI Summarization & Windows Desktop"
+          body: |
+            ### Capy Reader - Android APK & Windows Desktop
+
+            - **Android APK**: `CapyReader-AI-Summary.apk`
+            - **Windows Desktop**: Installers available in release assets (`.msi` / `.exe`)
+            - **Features**:
+              - 3-pane desktop layout (Feeds, Article List, Reader)
+              - Local SQLite & AppData persistence
+              - FreshRSS, Google Reader, Miniflux, Feedbin, and Local RSS support
+              - AI summarization and Article deduplication/dislike auto-mute
+              - Keyboard navigation (`J`/`K`, `M`, `S`, `D`, `R`, `O`)
+          files: release-desktop/*
+          prerelease: false
+          draft: false
