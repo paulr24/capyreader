@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
@@ -63,6 +64,7 @@ fun DesktopSidebar(
     onOpenAddFeed: () -> Unit,
     onOpenLogin: () -> Unit,
     onOpenSettings: () -> Unit,
+    onCloseSidebar: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val currentFilter by state.filter.collectAsState()
@@ -76,7 +78,7 @@ fun DesktopSidebar(
     val expandedFolders = remember { mutableStateMapOf<String, Boolean>() }
 
     Surface(
-        modifier = modifier.fillMaxHeight().width(280.dp),
+        modifier = modifier.fillMaxHeight(),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp
     ) {
@@ -115,14 +117,24 @@ fun DesktopSidebar(
                         ) {
                             if (isRefreshing) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(18.dp),
                                     strokeWidth = 2.dp,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             } else {
                                 Icon(
                                     imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Refresh",
+                                    contentDescription = "Refresh feeds",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        if (onCloseSidebar != null) {
+                            IconButton(onClick = onCloseSidebar) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close feeds panel",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }

@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.MarkEmailUnread
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ThumbDown
@@ -47,6 +49,10 @@ import java.time.format.FormatStyle
 fun DesktopArticleReader(
     state: DesktopAccountState,
     onOpenSettings: () -> Unit = {},
+    showBackButton: Boolean = false,
+    onBack: () -> Unit = {},
+    showSidebarToggle: Boolean = false,
+    onToggleSidebar: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val selectedArticle by state.selectedArticle.collectAsState()
@@ -76,24 +82,51 @@ fun DesktopArticleReader(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = article.feedName.ifBlank { "Feed" },
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        val formattedDate = article.publishedAt.format(
-                            DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
-                        )
-                        Text(
-                            text = formattedDate,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f, fill = false)
+                    ) {
+                        if (showBackButton) {
+                            IconButton(onClick = onBack) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back to article list",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+
+                        if (showSidebarToggle) {
+                            IconButton(onClick = onToggleSidebar) {
+                                Icon(
+                                    imageVector = Icons.Default.Menu,
+                                    contentDescription = "Toggle sidebar feeds",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+
+                        Column {
+                            Text(
+                                text = article.feedName.ifBlank { "Feed" },
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            val formattedDate = article.publishedAt.format(
+                                DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+                            )
+                            Text(
+                                text = formattedDate,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
                     Row(

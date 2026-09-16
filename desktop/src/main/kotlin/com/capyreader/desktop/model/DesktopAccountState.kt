@@ -3,9 +3,11 @@ package com.capyreader.desktop.model
 import com.capyreader.desktop.ai.DesktopAISummarizerService
 import com.capyreader.desktop.ai.DesktopArticleSummaryRepository
 import com.capyreader.desktop.storage.DesktopDatabaseProvider
+import com.capyreader.desktop.storage.DesktopFontFamily
 import com.capyreader.desktop.storage.DesktopPaths
 import com.capyreader.desktop.storage.DesktopPreferenceStoreProvider
 import com.capyreader.desktop.storage.DesktopPreferences
+import com.capyreader.desktop.storage.DesktopThemeMode
 import com.jocmp.capy.Account
 import com.jocmp.capy.AccountManager
 import com.jocmp.capy.Article
@@ -83,6 +85,18 @@ class DesktopAccountState(
 
     private val _unreadCount = MutableStateFlow(0L)
     val unreadCount = _unreadCount.asStateFlow()
+
+    private val _themeMode = MutableStateFlow(preferences.themeMode.get())
+    val themeMode = _themeMode.asStateFlow()
+
+    private val _fontFamily = MutableStateFlow(preferences.fontFamily.get())
+    val fontFamily = _fontFamily.asStateFlow()
+
+    private val _accentColor = MutableStateFlow(preferences.accentColor.get())
+    val accentColor = _accentColor.asStateFlow()
+
+    private val _aiSummaryTrigger = MutableStateFlow<String?>(null)
+    val aiSummaryTrigger = _aiSummaryTrigger.asStateFlow()
 
     init {
         val savedAccountID = preferences.accountID.get()
@@ -456,6 +470,29 @@ class DesktopAccountState(
                 onComplete(result.duplicateIDs.size)
             }
         }
+    }
+
+    fun updateThemeMode(mode: DesktopThemeMode) {
+        preferences.themeMode.set(mode)
+        _themeMode.value = mode
+    }
+
+    fun updateFontFamily(family: DesktopFontFamily) {
+        preferences.fontFamily.set(family)
+        _fontFamily.value = family
+    }
+
+    fun updateAccentColor(hex: String) {
+        preferences.accentColor.set(hex)
+        _accentColor.value = hex
+    }
+
+    fun triggerAISummary(articleId: String) {
+        _aiSummaryTrigger.value = articleId
+    }
+
+    fun clearAISummaryTrigger() {
+        _aiSummaryTrigger.value = null
     }
 
     private fun normalizeServerUrl(rawUrl: String, source: Source): String {

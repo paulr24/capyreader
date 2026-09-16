@@ -12,14 +12,14 @@ import kotlinx.serialization.json.Json
 class DesktopPreferences(
     val preferenceStore: PreferenceStore = DesktopPreferenceStore(DesktopPaths.appPrefsFile)
 ) {
-    val accountID: Preference<String>
-        get() = preferenceStore.getString("account_id", "")
+    val accountID: Preference<String> =
+        preferenceStore.getString("account_id", "")
 
     val isLoggedIn: Boolean
         get() = accountID.get().isNotBlank()
 
-    val filter: Preference<ArticleFilter>
-        get() = preferenceStore.getObject(
+    val filter: Preference<ArticleFilter> =
+        preferenceStore.getObject(
             key = "article_filter",
             defaultValue = ArticleFilter.default(),
             serializer = { Json.encodeToString(it) },
@@ -32,17 +32,20 @@ class DesktopPreferences(
             }
         )
 
-    val sortOrder: Preference<SortOrder>
-        get() = preferenceStore.getEnum("sort_order", SortOrder.NEWEST_FIRST)
+    val sortOrder: Preference<SortOrder> =
+        preferenceStore.getEnum("sort_order", SortOrder.NEWEST_FIRST)
 
-    val articleStatus: Preference<ArticleStatus>
-        get() = preferenceStore.getEnum("article_status", ArticleStatus.UNREAD)
+    val articleStatus: Preference<ArticleStatus> =
+        preferenceStore.getEnum("article_status", ArticleStatus.UNREAD)
 
     val aiOptions: DesktopAIOptions = DesktopAIOptions(preferenceStore)
 
-    val themeMode: Preference<DesktopThemeMode>
-        get() = preferenceStore.getEnum("app_theme_mode", DesktopThemeMode.default)
+    val themeMode: Preference<DesktopThemeMode> =
+        preferenceStore.getEnum("app_theme_mode", DesktopThemeMode.default)
 
-    val fontFamily: Preference<DesktopFontFamily>
-        get() = preferenceStore.getEnum("app_font_family", DesktopFontFamily.default)
+    val fontFamily: Preference<DesktopFontFamily> =
+        preferenceStore.getEnum("app_font_family", DesktopFontFamily.default)
+
+    val accentColor: Preference<String> =
+        preferenceStore.getString("app_accent_color", "")
 }

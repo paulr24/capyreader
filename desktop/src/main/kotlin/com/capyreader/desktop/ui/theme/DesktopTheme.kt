@@ -84,6 +84,30 @@ private val BlackColorScheme = darkColorScheme(
     outline = Color(0xFF6B6B6B),
 )
 
+fun parseHexColor(hex: String): Color? {
+    val clean = hex.trim().removePrefix("#")
+    return try {
+        when (clean.length) {
+            6 -> {
+                val r = clean.substring(0, 2).toInt(16)
+                val g = clean.substring(2, 4).toInt(16)
+                val b = clean.substring(4, 6).toInt(16)
+                Color(r, g, b)
+            }
+            8 -> {
+                val a = clean.substring(0, 2).toInt(16)
+                val r = clean.substring(2, 4).toInt(16)
+                val g = clean.substring(4, 6).toInt(16)
+                val b = clean.substring(6, 8).toInt(16)
+                Color(r, g, b, a)
+            }
+            else -> null
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
+
 private fun getDesktopTypography(fontFamily: FontFamily): Typography {
     val defaultTypography = Typography()
     return Typography(
@@ -109,15 +133,28 @@ private fun getDesktopTypography(fontFamily: FontFamily): Typography {
 fun DesktopTheme(
     themeMode: DesktopThemeMode = DesktopThemeMode.SYSTEM,
     fontFamily: DesktopFontFamily = DesktopFontFamily.SYSTEM_DEFAULT,
+    accentColorHex: String = "",
     content: @Composable () -> Unit
 ) {
     val isSystemDark = isSystemInDarkTheme()
-    val colorScheme = when (themeMode) {
+    val baseColorScheme = when (themeMode) {
         DesktopThemeMode.SYSTEM -> if (isSystemDark) DarkColorScheme else LightColorScheme
         DesktopThemeMode.LIGHT -> LightColorScheme
         DesktopThemeMode.DARK -> DarkColorScheme
         DesktopThemeMode.SEPIA -> SepiaColorScheme
         DesktopThemeMode.BLACK -> BlackColorScheme
+    }
+
+    val customAccent = remember(accentColorHex) { parseHexColor(accentColorHex) }
+
+    val colorScheme = if (customAccent != null) {
+        baseColorScheme.copy(
+            primary = customAccent,
+            primaryContainer = customAccent.copy(alpha = 0.2f),
+            onPrimaryContainer = customAccent
+        )
+    } else {
+        baseColorScheme
     }
 
     val composeFontFamily = when (fontFamily) {

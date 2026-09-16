@@ -63,6 +63,7 @@ import com.capyreader.desktop.model.DesktopAccountState
 import com.capyreader.desktop.storage.DEFAULT_DESKTOP_AI_PROMPT_TEMPLATE
 import com.capyreader.desktop.storage.DesktopAIProvider
 import com.capyreader.desktop.storage.DesktopFontFamily
+import com.capyreader.desktop.ui.components.DesktopColorPicker
 import com.capyreader.desktop.storage.DesktopGeminiModels
 import com.capyreader.desktop.storage.DesktopThemeMode
 import com.jocmp.capy.accounts.AutoDelete
@@ -99,12 +100,9 @@ fun DesktopSettingsDialog(
     var sortOrder by remember {
         mutableStateOf(state.preferences.sortOrder.get())
     }
-    var themeMode by remember {
-        mutableStateOf(state.preferences.themeMode.get())
-    }
-    var fontFamily by remember {
-        mutableStateOf(state.preferences.fontFamily.get())
-    }
+    val themeMode by state.themeMode.collectAsState()
+    val fontFamily by state.fontFamily.collectAsState()
+    val accentColor by state.accentColor.collectAsState()
 
     var isPruning by remember { mutableStateOf(false) }
     var pruneStatusMessage by remember { mutableStateOf<String?>(null) }
@@ -419,8 +417,7 @@ fun DesktopSettingsDialog(
                             selected = themeMode,
                             options = themeOptions,
                             onSelect = {
-                                themeMode = it
-                                state.preferences.themeMode.set(it)
+                                state.updateThemeMode(it)
                             }
                         )
 
@@ -439,8 +436,7 @@ fun DesktopSettingsDialog(
                             selected = fontFamily,
                             options = fontOptions,
                             onSelect = {
-                                fontFamily = it
-                                state.preferences.fontFamily.set(it)
+                                state.updateFontFamily(it)
                             }
                         )
 
@@ -460,6 +456,25 @@ fun DesktopSettingsDialog(
                                 sortOrder = it
                                 state.updateSortOrder(it)
                             }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "Accent Color",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Custom color accent applied to highlights, active tabs, and primary controls.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        DesktopColorPicker(
+                            currentHex = accentColor,
+                            onColorSelected = { state.updateAccentColor(it) }
                         )
                     }
 
@@ -763,6 +778,8 @@ fun DesktopSettingsDialog(
                             ShortcutRow(key = "K  /  ↑", description = "Select previous article in list")
                             ShortcutRow(key = "M", description = "Toggle read / unread status")
                             ShortcutRow(key = "S", description = "Toggle starred status")
+                            ShortcutRow(key = "A  /  X", description = "Generate AI summary for current article")
+                            ShortcutRow(key = "\\", description = "Toggle sidebar pane open/collapsed")
                             ShortcutRow(key = "D", description = "Scan & clean up duplicate articles now")
                             ShortcutRow(key = "R", description = "Refresh feeds")
                             ShortcutRow(key = "O", description = "Open article in default web browser")

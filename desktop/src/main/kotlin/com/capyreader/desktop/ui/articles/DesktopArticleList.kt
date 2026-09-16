@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ThumbDown
@@ -54,6 +55,8 @@ import java.time.temporal.ChronoUnit
 @Composable
 fun DesktopArticleList(
     state: DesktopAccountState,
+    showSidebarToggle: Boolean = false,
+    onToggleSidebar: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val articles by state.articles.collectAsState()
@@ -61,32 +64,51 @@ fun DesktopArticleList(
     val searchQuery by state.searchQuery.collectAsState()
 
     Surface(
-        modifier = modifier.fillMaxHeight().width(360.dp),
+        modifier = modifier.fillMaxHeight(),
         color = MaterialTheme.colorScheme.background,
         tonalElevation = 0.dp
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Search Bar & Header
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { state.setSearchQuery(it) },
-                    placeholder = { Text("Search articles...", fontSize = 13.sp) },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotBlank()) {
-                            IconButton(onClick = { state.setSearchQuery("") }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(16.dp))
-                            }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (showSidebarToggle) {
+                        IconButton(
+                            onClick = onToggleSidebar,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Menu,
+                                contentDescription = "Toggle sidebar feeds",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(8.dp),
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { state.setSearchQuery(it) },
+                        placeholder = { Text("Search articles...", fontSize = 13.sp) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotBlank()) {
+                                IconButton(onClick = { state.setSearchQuery("") }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(6.dp))
 

@@ -40,6 +40,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -164,6 +165,16 @@ fun DesktopAISummaryCard(
             summaryText = cached
         } else if (isEnabled && isConfigured && aiOptions.autoSummarize.get()) {
             generateSummary(forceRefresh = false)
+        }
+    }
+
+    val aiSummaryTrigger by state.aiSummaryTrigger.collectAsState()
+    LaunchedEffect(aiSummaryTrigger) {
+        if (aiSummaryTrigger == article.id) {
+            isVisible = true
+            isExpanded = true
+            generateSummary(forceRefresh = true)
+            state.clearAISummaryTrigger()
         }
     }
 

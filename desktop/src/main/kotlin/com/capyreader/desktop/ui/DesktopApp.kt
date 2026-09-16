@@ -3,11 +3,11 @@ package com.capyreader.desktop.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -37,6 +37,7 @@ import com.capyreader.desktop.ui.dialogs.DesktopLoginDialog
 import com.capyreader.desktop.ui.dialogs.DesktopSettingsDialog
 import com.capyreader.desktop.ui.sidebar.DesktopSidebar
 import com.capyreader.desktop.ui.theme.DesktopTheme
+import kotlinx.coroutines.launch
 import java.awt.Desktop
 import java.net.URI
 
@@ -50,6 +51,7 @@ fun DesktopApp() {
     var showLoginDialog by remember { mutableStateOf(false) }
     var showAddFeedDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
+    var userSidebarOpen by remember { mutableStateOf<Boolean?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val focusRequester = remember { FocusRequester() }
@@ -71,14 +73,16 @@ fun DesktopApp() {
         focusRequester.requestFocus()
     }
 
-    val themeMode by state.preferences.themeMode.changes().collectAsState(state.preferences.themeMode.get())
-    val fontFamily by state.preferences.fontFamily.changes().collectAsState(state.preferences.fontFamily.get())
+    val themeMode by state.themeMode.collectAsState()
+    val fontFamily by state.fontFamily.collectAsState()
+    val accentColor by state.accentColor.collectAsState()
 
     DesktopTheme(
         themeMode = themeMode,
-        fontFamily = fontFamily
+        fontFamily = fontFamily,
+        accentColorHex = accentColor
     ) {
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .focusRequester(focusRequester)
@@ -110,6 +114,29 @@ fun DesktopApp() {
                                 selected?.let { state.toggleStarred(it) }
                                 true
                             }
+                            Key.A, Key.X -> {
+                                selected?.let { article ->
+                                    if (state.preferences.aiOptions.enabled.get()) {
+                                        state.triggerAISummary(article.id)
+                                    } else {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Enable AI Summarization in Settings to generate summaries.")
+                                        }
+                                    }
+                                }
+                                true
+                            }
+                            Key.Backslash -> {
+                                val currentlyOpen = userSidebarOpen ?: (maxWidth >= 1020.dp)
+                                userSidebarOpen = !currentlyOpen
+                                true
+                            }
+                            Key.Escape -> {
+                                if (maxWidth < 720.dp && selected != null) {
+                                    state.selectArticle(null)
+                                    true
+                                } else false
+                            }
                             Key.D -> {
                                 selected?.let { state.dislikeArticle(it) }
                                 true
@@ -135,71 +162,139 @@ fun DesktopApp() {
                     } else false
                 }
         ) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                // Left pane: Sidebar
-                DesktopSidebar(
-                    state = state,
-                    onOpenAddFeed = { showAddFeedDialog = true },
-                    onOpenLogin = { showLoginDialog = true },
-                    onOpenSettings = { showSettingsDialog = true }
-                )
+            val screenWidth = maxWidth
+            val isWide = screenWidth >= 1020.dp
+            val isMedium = screenWidth in 720.dp..<1020.dp
+            val isNarrow = screenWidth < 720.dp
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(1.dp)
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                )
+            val selectedArticle by state.selectedArticle.collectAsState()
 
-                // Middle pane: Article List
-                DesktopArticleList(
-                    state = state
-                )
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(1.dp)
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                )
-
-                // Right pane: Article Reader
-                DesktopArticleReader(
-                    state = state,
-                    onOpenSettings = { showSettingsDialog = true },
-                    modifier = Modifier.weight(1f)
-                )
+            // Determine if sidebar should be visible
+            val showSidebar = when {
+                isNarrow -> (userSidebarOpen == true) && (selectedArticle == null)
+                isMedium -> userSidebarOpen ?: false
+                else -> userSidebarOpen ?: true
             }
 
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
-
-            if (showLoginDialog) {
-                DesktopLoginDialog(
-                    state = state,
-                    onDismissRequest = { showLoginDialog = false }
-                )
-            }
-
-            if (showAddFeedDialog) {
-                DesktopAddFeedDialog(
-                    state = state,
-                    onDismissRequest = { showAddFeedDialog = false }
-                )
-            }
-
-            if (showSettingsDialog) {
-                DesktopSettingsDialog(
-                    state = state,
-                    onDismissRequest = { showSettingsDialog = false },
-                    onOpenLogin = {
-                        showSettingsDialog = false
-                        showLoginDialog = true
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (isNarrow) {
+                    // NARROW SCREEN (Mobile / Compact):
+                    // If an article is open, collapse panes 1 & 2 completely, giving 100% width to ArticleReader!
+                    if (selectedArticle != null) {
+                        DesktopArticleReader(
+                            state = state,
+                            showBackButton = true,
+                            onBack = { state.selectArticle(null) },
+                            showSidebarToggle = false,
+                            onOpenSettings = { showSettingsDialog = true },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else if (showSidebar) {
+                        // Narrow screen showing sidebar
+                        DesktopSidebar(
+                            state = state,
+                            onOpenAddFeed = { showAddFeedDialog = true },
+                            onOpenLogin = { showLoginDialog = true },
+                            onOpenSettings = { showSettingsDialog = true },
+                            onCloseSidebar = { userSidebarOpen = false }
+                        )
+                    } else {
+                        // Narrow screen showing article list
+                        DesktopArticleList(
+                            state = state,
+                            showSidebarToggle = true,
+                            onToggleSidebar = { userSidebarOpen = true },
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
+                } else {
+                    // WIDE & MEDIUM SCREENS
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        // Pane 1: Sidebar (if visible)
+                        if (showSidebar) {
+                            val sidebarWidth = if (isMedium) 250.dp else 280.dp
+                            Box(modifier = Modifier.width(sidebarWidth).fillMaxHeight()) {
+                                DesktopSidebar(
+                                    state = state,
+                                    onOpenAddFeed = { showAddFeedDialog = true },
+                                    onOpenLogin = { showLoginDialog = true },
+                                    onOpenSettings = { showSettingsDialog = true }
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .width(1.dp)
+                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                            )
+                        }
+
+                        // Pane 2: Article List
+                        val listWidth = when {
+                            !showSidebar && isWide -> 380.dp
+                            !showSidebar -> 330.dp
+                            isMedium -> 300.dp
+                            else -> 350.dp
+                        }
+
+                        DesktopArticleList(
+                            state = state,
+                            showSidebarToggle = !showSidebar,
+                            onToggleSidebar = { userSidebarOpen = true },
+                            modifier = Modifier.width(listWidth).fillMaxHeight()
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(1.dp)
+                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        )
+
+                        // Pane 3: Article Reader
+                        DesktopArticleReader(
+                            state = state,
+                            showBackButton = false,
+                            showSidebarToggle = !showSidebar,
+                            onToggleSidebar = { userSidebarOpen = !showSidebar },
+                            onOpenSettings = { showSettingsDialog = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.align(Alignment.BottomCenter)
                 )
+
+                if (showLoginDialog) {
+                    DesktopLoginDialog(
+                        state = state,
+                        onDismissRequest = { showLoginDialog = false }
+                    )
+                }
+
+                if (showAddFeedDialog) {
+                    DesktopAddFeedDialog(
+                        state = state,
+                        onDismissRequest = { showAddFeedDialog = false }
+                    )
+                }
+
+                if (showSettingsDialog) {
+                    DesktopSettingsDialog(
+                        state = state,
+                        onDismissRequest = { showSettingsDialog = false },
+                        onOpenLogin = {
+                            showSettingsDialog = false
+                            showLoginDialog = true
+                        }
+                    )
+                }
             }
         }
     }
 }
+
