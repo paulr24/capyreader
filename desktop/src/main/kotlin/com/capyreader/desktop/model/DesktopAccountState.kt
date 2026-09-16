@@ -15,6 +15,7 @@ import com.jocmp.capy.Folder
 import com.jocmp.capy.accounts.Credentials
 import com.jocmp.capy.accounts.FaviconPolicy
 import com.jocmp.capy.accounts.Source
+import com.jocmp.capy.accounts.withFreshRSSPath
 import com.jocmp.capy.articles.SortOrder
 import com.jocmp.capy.common.TimeHelpers
 import com.jocmp.capy.persistence.ArticleRecords
@@ -310,13 +311,14 @@ class DesktopAccountState(
         onSuccess: () -> Unit,
         onError: (String) -> Unit,
     ) {
+        val normalizedUrl = normalizeServerUrl(url, source)
         scope.launch(Dispatchers.IO) {
             try {
                 val verified = Credentials.from(
                     source = source,
                     username = username,
                     password = password,
-                    url = url,
+                    url = normalizedUrl,
                 ).verify().getOrThrow()
 
                 val id = accountManager.createAccount(
@@ -382,5 +384,23 @@ class DesktopAccountState(
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    private fun normalizeServerUrl(rawUrl: String, source: Source): String {
+        var clean = rawUrl.trim()
+        if (clean.isBlank()) return clean
+
+        if (!clean.startsWith("http://", ignoreCase = true) && !clean.startsWith("https://", ignoreCase = true)) {
+            clean = "https://$clean"
+        }
+
+        if (!clean.endsWith("/")) {
+            clean = "$clean/"
+        }
+
+        return when (source) {
+            Source.FRESHRSS -> withFreshRSSPath(clean, source)
+            else -> clean
+        }
     }
 }
