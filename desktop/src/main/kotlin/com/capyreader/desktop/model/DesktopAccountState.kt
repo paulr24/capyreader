@@ -2,6 +2,7 @@ package com.capyreader.desktop.model
 
 import com.capyreader.desktop.ai.DesktopAISummarizerService
 import com.capyreader.desktop.ai.DesktopArticleSummaryRepository
+import com.capyreader.desktop.articles.DesktopArticleExtractor
 import com.capyreader.desktop.storage.DesktopDatabaseProvider
 import com.capyreader.desktop.storage.DesktopFontFamily
 import com.capyreader.desktop.storage.DesktopPaths
@@ -300,8 +301,12 @@ class DesktopAccountState(
             result.fold(
                 onSuccess = { fullHtml ->
                     if (fullHtml.isNotBlank()) {
+                        val cleanedHtml = DesktopArticleExtractor.extract(
+                            html = fullHtml,
+                            articleUrl = current.url?.toString()
+                        )
                         val loaded = current.copy(
-                            content = fullHtml,
+                            content = cleanedHtml.ifBlank { fullHtml },
                             fullContent = Article.FullContentState.LOADED
                         )
                         updateArticle(loaded)

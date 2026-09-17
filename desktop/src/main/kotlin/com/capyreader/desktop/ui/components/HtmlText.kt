@@ -1,36 +1,68 @@
 package com.capyreader.desktop.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.capyreader.desktop.articles.DesktopArticleExtractor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.jetbrains.skia.Image as SkiaImage
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Node
 import org.jsoup.nodes.TextNode
+
+sealed interface ArticleBlock {
+    data class Heading(val text: AnnotatedString, val level: Int) : ArticleBlock
+    data class Paragraph(val text: AnnotatedString) : ArticleBlock
+    data class Blockquote(val text: AnnotatedString) : ArticleBlock
+    data class ListBlock(val items: List<AnnotatedString>, val ordered: Boolean) : ArticleBlock
+    data class CodeBlock(val code: String) : ArticleBlock
+    data class ImageBlock(val src: String, val alt: String? = null, val caption: String? = null) : ArticleBlock
+    data object Divider : ArticleBlock
+}
 
 @Composable
 fun HtmlArticleView(
@@ -38,29 +70,35 @@ fun HtmlArticleView(
     modifier: Modifier = Modifier
 ) {
     val uriHandler = LocalUriHandler.current
-    val doc = remember(html) { Jsoup.parse(html) }
-    val body = doc.body()
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+
+    val blocks = remember(html, primaryColor, onSurfaceColor) {
+        parseHtmlBlocks(html, primaryColor, onSurfaceColor)
+    }
 
     SelectionContainer(modifier = modifier) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
         ) {
-            val children = body.children()
-            if (children.isEmpty()) {
-                val plainText = body.text()
-                if (plainText.isNotBlank()) {
+            if (blocks.isEmpty()) {
+                val plain = remember(html) { Jsoup.parse(html).text() }
+                if (plain.isNotBlank()) {
                     Text(
-                        text = plainText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        lineHeight = 26.sp,
-                        color = MaterialTheme.colorScheme.onSurface
+                        text = plain,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = 16.sp,
+                            lineHeight = 26.sp,
+                            color = onSurfaceColor
+                        )
                     )
                 }
             } else {
-                children.forEach { child ->
-                    RenderElement(
-                        element = child,
+                blocks.forEach { block ->
+                    RenderBlock(
+                        block = block,
                         onOpenUrl = { url ->
                             try {
                                 uriHandler.openUri(url)
@@ -74,70 +112,148 @@ fun HtmlArticleView(
 }
 
 @Composable
-private fun RenderElement(
-    element: Element,
+private fun RenderBlock(
+    block: ArticleBlock,
     onOpenUrl: (String) -> Unit
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
 
-    when (element.tagName().lowercase()) {
-        "h1" -> {
-            Text(
-                text = element.text(),
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = onSurfaceColor
-            )
-        }
-        "h2" -> {
-            Text(
-                text = element.text(),
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = onSurfaceColor
-            )
-        }
-        "h3", "h4" -> {
-            Text(
-                text = element.text(),
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = onSurfaceColor
-            )
-        }
-        "h5", "h6" -> {
-            Text(
-                text = element.text(),
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = onSurfaceColor
-            )
-        }
-        "blockquote" -> {
-            Box(
+    when (block) {
+        is ArticleBlock.Heading -> {
+            val (fontSize, lineHeight, topPadding, bottomPadding) = when (block.level) {
+                1 -> Quadruple(24.sp, 32.sp, 20.dp, 8.dp)
+                2 -> Quadruple(20.sp, 28.sp, 18.dp, 8.dp)
+                3 -> Quadruple(18.sp, 24.sp, 16.dp, 6.dp)
+                else -> Quadruple(16.sp, 22.sp, 14.dp, 4.dp)
+            }
+            ClickableText(
+                text = block.text,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fontSize,
+                    lineHeight = lineHeight,
+                    color = onSurfaceColor
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(top = topPadding, bottom = bottomPadding),
+                onClick = { offset ->
+                    block.text.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                        .firstOrNull()?.let { annotation ->
+                            onOpenUrl(annotation.item)
+                        }
+                }
+            )
+        }
+        is ArticleBlock.Paragraph -> {
+            ClickableText(
+                text = block.text,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = 16.sp,
+                    lineHeight = 26.sp,
+                    color = onSurfaceColor
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 14.dp),
+                onClick = { offset ->
+                    block.text.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                        .firstOrNull()?.let { annotation ->
+                            onOpenUrl(annotation.item)
+                        }
+                }
+            )
+        }
+        is ArticleBlock.Blockquote -> {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             ) {
-                Text(
-                    text = element.text(),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontStyle = FontStyle.Italic,
-                        lineHeight = 22.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .height(IntrinsicSize.Min)
+                        .background(primaryColor, RoundedCornerShape(2.dp))
                 )
+                Spacer(modifier = Modifier.width(12.dp))
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                ) {
+                    ClickableText(
+                        text = block.text,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontStyle = FontStyle.Italic,
+                            fontSize = 15.sp,
+                            lineHeight = 24.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        modifier = Modifier.padding(12.dp),
+                        onClick = { offset ->
+                            block.text.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                                .firstOrNull()?.let { annotation ->
+                                    onOpenUrl(annotation.item)
+                                }
+                        }
+                    )
+                }
             }
         }
-        "pre", "code" -> {
+        is ArticleBlock.ListBlock -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 8.dp, bottom = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                block.items.forEachIndexed { index, itemText ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        val prefix = if (block.ordered) "${index + 1}." else "•"
+                        Text(
+                            text = prefix,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = primaryColor
+                            ),
+                            lineHeight = 24.sp
+                        )
+                        ClickableText(
+                            text = itemText,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = 15.sp,
+                                lineHeight = 24.sp,
+                                color = onSurfaceColor
+                            ),
+                            modifier = Modifier.weight(1f),
+                            onClick = { offset ->
+                                itemText.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                                    .firstOrNull()?.let { annotation ->
+                                        onOpenUrl(annotation.item)
+                                    }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+        is ArticleBlock.CodeBlock -> {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(6.dp))
+                    .padding(vertical = 8.dp)
+                    .clip(RoundedCornerShape(8.dp))
                     .background(Color(0xFF1E1E1E))
-                    .padding(12.dp)
+                    .padding(14.dp)
             ) {
                 Text(
-                    text = element.text(),
+                    text = block.code,
                     style = TextStyle(
                         fontFamily = FontFamily.Monospace,
                         fontSize = 13.sp,
@@ -147,53 +263,237 @@ private fun RenderElement(
                 )
             }
         }
-        "ul" -> {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                element.children().forEach { li ->
-                    Text(
-                        text = "•  ${li.text()}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        lineHeight = 24.sp,
-                        color = onSurfaceColor
-                    )
-                }
-            }
+        is ArticleBlock.ImageBlock -> {
+            AsyncArticleImage(
+                src = block.src,
+                alt = block.alt,
+                caption = block.caption,
+                onOpenUrl = onOpenUrl
+            )
         }
-        "ol" -> {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                element.children().forEachIndexed { index, li ->
-                    Text(
-                        text = "${index + 1}.  ${li.text()}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        lineHeight = 24.sp,
-                        color = onSurfaceColor
-                    )
-                }
-            }
+        ArticleBlock.Divider -> {
+            Divider(
+                modifier = Modifier.padding(vertical = 14.dp),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            )
         }
-        else -> {
-            val annotated = buildAnnotatedStringFromNode(element, primaryColor, onSurfaceColor)
-            if (annotated.isNotBlank()) {
-                ClickableText(
-                    text = annotated,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        lineHeight = 26.sp,
-                        color = onSurfaceColor
-                    ),
-                    onClick = { offset ->
-                        annotated.getStringAnnotations(tag = "URL", start = offset, end = offset)
-                            .firstOrNull()?.let { annotation ->
-                                onOpenUrl(annotation.item)
-                            }
+    }
+}
+
+@Composable
+fun AsyncArticleImage(
+    src: String,
+    alt: String? = null,
+    caption: String? = null,
+    onOpenUrl: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var imageBitmap by remember(src) { mutableStateOf<ImageBitmap?>(null) }
+
+    LaunchedEffect(src) {
+        if (src.isBlank()) return@LaunchedEffect
+        withContext(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient.Builder().build()
+                val request = Request.Builder().url(src).build()
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val bytes = response.body?.bytes()
+                        if (bytes != null && bytes.isNotEmpty()) {
+                            val skiaImage = SkiaImage.makeFromEncoded(bytes)
+                            imageBitmap = skiaImage.toComposeImageBitmap()
+                        }
                     }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    if (imageBitmap != null) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp)
+        ) {
+            Image(
+                bitmap = imageBitmap!!,
+                contentDescription = alt ?: caption,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onOpenUrl(src) },
+                contentScale = ContentScale.FillWidth
+            )
+            if (!caption.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = caption,
+                    style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
             }
         }
     }
 }
 
-private fun buildAnnotatedStringFromNode(
-    node: Node,
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+private fun parseHtmlBlocks(
+    html: String,
+    linkColor: Color,
+    textColor: Color
+): List<ArticleBlock> {
+    if (html.isBlank()) return emptyList()
+
+    val cleanHtml = if (html.contains("<html", ignoreCase = true) || html.contains("<!DOCTYPE", ignoreCase = true)) {
+        DesktopArticleExtractor.extract(html)
+    } else {
+        html
+    }
+
+    val doc = Jsoup.parse(cleanHtml)
+    val body = doc.body() ?: return emptyList()
+
+    val blocks = mutableListOf<ArticleBlock>()
+    val pendingInlineNodes = mutableListOf<Node>()
+
+    fun flushInline() {
+        if (pendingInlineNodes.isNotEmpty()) {
+            val text = buildAnnotatedStringFromNodes(pendingInlineNodes, linkColor, textColor)
+            if (text.isNotBlank()) {
+                blocks.add(ArticleBlock.Paragraph(text))
+            }
+            pendingInlineNodes.clear()
+        }
+    }
+
+    fun isBlockElement(el: Element): Boolean {
+        val tag = el.tagName().lowercase()
+        if (tag in listOf("p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "ul", "ol", "hr", "figure", "table", "img")) {
+            return true
+        }
+        if (tag in listOf("div", "section", "article", "main", "header", "footer", "aside")) {
+            return el.children().any { isBlockElement(it) }
+        }
+        return false
+    }
+
+    fun processElement(el: Element) {
+        val tag = el.tagName().lowercase()
+        when {
+            tag in listOf("h1", "h2", "h3", "h4", "h5", "h6") -> {
+                flushInline()
+                val level = tag.substring(1).toIntOrNull() ?: 1
+                val text = buildAnnotatedStringFromNodes(listOf(el), linkColor, textColor)
+                if (text.isNotBlank()) {
+                    blocks.add(ArticleBlock.Heading(text, level))
+                }
+            }
+            tag == "p" -> {
+                flushInline()
+                val text = buildAnnotatedStringFromNodes(listOf(el), linkColor, textColor)
+                if (text.isNotBlank()) {
+                    blocks.add(ArticleBlock.Paragraph(text))
+                }
+            }
+            tag == "blockquote" -> {
+                flushInline()
+                val text = buildAnnotatedStringFromNodes(listOf(el), linkColor, textColor)
+                if (text.isNotBlank()) {
+                    blocks.add(ArticleBlock.Blockquote(text))
+                }
+            }
+            tag == "pre" -> {
+                flushInline()
+                val code = el.wholeText().trimEnd()
+                if (code.isNotBlank()) {
+                    blocks.add(ArticleBlock.CodeBlock(code))
+                }
+            }
+            tag in listOf("ul", "ol") -> {
+                flushInline()
+                val isOrdered = tag == "ol"
+                val items = el.children()
+                    .filter { it.tagName().equals("li", ignoreCase = true) }
+                    .map { buildAnnotatedStringFromNodes(listOf(it), linkColor, textColor) }
+                    .filter { it.isNotBlank() }
+                if (items.isNotEmpty()) {
+                    blocks.add(ArticleBlock.ListBlock(items, isOrdered))
+                }
+            }
+            tag == "hr" -> {
+                flushInline()
+                blocks.add(ArticleBlock.Divider)
+            }
+            tag == "figure" -> {
+                flushInline()
+                val img = el.selectFirst("img")
+                val caption = el.selectFirst("figcaption")?.text()
+                if (img != null) {
+                    val src = img.attr("abs:src").ifBlank { img.attr("src") }
+                    if (src.isNotBlank()) {
+                        blocks.add(ArticleBlock.ImageBlock(src = src, alt = img.attr("alt"), caption = caption))
+                    }
+                }
+            }
+            tag == "img" -> {
+                flushInline()
+                val src = el.attr("abs:src").ifBlank { el.attr("src") }
+                if (src.isNotBlank()) {
+                    blocks.add(ArticleBlock.ImageBlock(src = src, alt = el.attr("alt")))
+                }
+            }
+            tag in listOf("div", "section", "article", "main", "header", "footer", "aside", "body") -> {
+                if (isBlockElement(el)) {
+                    for (child in el.childNodes()) {
+                        when (child) {
+                            is Element -> {
+                                if (isBlockElement(child)) {
+                                    flushInline()
+                                    processElement(child)
+                                } else {
+                                    pendingInlineNodes.add(child)
+                                }
+                            }
+                            is TextNode -> {
+                                pendingInlineNodes.add(child)
+                            }
+                        }
+                    }
+                    flushInline()
+                } else {
+                    pendingInlineNodes.add(el)
+                }
+            }
+            else -> {
+                pendingInlineNodes.add(el)
+            }
+        }
+    }
+
+    for (child in body.childNodes()) {
+        when (child) {
+            is Element -> {
+                if (isBlockElement(child)) {
+                    flushInline()
+                    processElement(child)
+                } else {
+                    pendingInlineNodes.add(child)
+                }
+            }
+            is TextNode -> {
+                pendingInlineNodes.add(child)
+            }
+        }
+    }
+    flushInline()
+
+    return blocks
+}
+
+private fun buildAnnotatedStringFromNodes(
+    nodes: List<Node>,
     linkColor: Color,
     textColor: Color
 ): AnnotatedString {
@@ -202,10 +502,35 @@ private fun buildAnnotatedStringFromNode(
     fun appendNode(curr: Node) {
         when (curr) {
             is TextNode -> {
-                builder.append(curr.text())
+                val whole = curr.wholeText
+                if (whole.isNotEmpty()) {
+                    val normalized = whole.replace(Regex("\\s+"), " ")
+                    val needsLeadingSpace = whole.first().isWhitespace() &&
+                            builder.length > 0 &&
+                            !builder.toAnnotatedString().text.last().isWhitespace()
+                    val needsTrailingSpace = whole.last().isWhitespace()
+
+                    if (needsLeadingSpace && !normalized.startsWith(" ")) {
+                        builder.append(" ")
+                    }
+                    val trimmed = normalized.trim()
+                    if (trimmed.isNotEmpty()) {
+                        builder.append(trimmed)
+                        if (needsTrailingSpace) {
+                            builder.append(" ")
+                        }
+                    } else if (builder.length > 0 && !builder.toAnnotatedString().text.last().isWhitespace()) {
+                        builder.append(" ")
+                    }
+                }
             }
             is Element -> {
                 val tag = curr.tagName().lowercase()
+                if (tag == "br") {
+                    builder.append("\n")
+                    return
+                }
+
                 val isLink = tag == "a" && curr.hasAttr("href")
                 val href = curr.attr("href")
 
@@ -222,11 +547,15 @@ private fun buildAnnotatedStringFromNode(
                     builder.pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
                 } else if (tag == "i" || tag == "em") {
                     builder.pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                } else if (tag == "u") {
+                    builder.pushStyle(SpanStyle(textDecoration = TextDecoration.Underline))
+                } else if (tag == "s" || tag == "del" || tag == "strike") {
+                    builder.pushStyle(SpanStyle(textDecoration = TextDecoration.LineThrough))
                 } else if (tag == "code") {
                     builder.pushStyle(
                         SpanStyle(
                             fontFamily = FontFamily.Monospace,
-                            background = Color.Gray.copy(alpha = 0.2f)
+                            background = textColor.copy(alpha = 0.12f)
                         )
                     )
                 }
@@ -236,13 +565,13 @@ private fun buildAnnotatedStringFromNode(
                 if (isLink) {
                     builder.pop()
                     builder.pop()
-                } else if (tag == "b" || tag == "strong" || tag == "i" || tag == "em" || tag == "code") {
+                } else if (tag == "b" || tag == "strong" || tag == "i" || tag == "em" || tag == "u" || tag == "s" || tag == "del" || tag == "strike" || tag == "code") {
                     builder.pop()
                 }
             }
         }
     }
 
-    appendNode(node)
+    nodes.forEach { appendNode(it) }
     return builder.toAnnotatedString()
 }
