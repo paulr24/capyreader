@@ -312,8 +312,10 @@ fun DesktopArticleReader(
                                             modifier = Modifier.size(16.dp),
                                             tint = MaterialTheme.colorScheme.primary
                                         )
+                                        val isSticky by state.enableStickyFullContent.collectAsState()
+                                        val stickyText = if (isSticky) " (Sticky on)" else ""
                                         Text(
-                                            text = "Full content extracted from web",
+                                            text = "Full content extracted from web$stickyText",
                                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                             color = MaterialTheme.colorScheme.onPrimaryContainer
                                         )

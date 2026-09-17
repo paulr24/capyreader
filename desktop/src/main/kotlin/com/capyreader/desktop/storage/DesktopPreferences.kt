@@ -48,4 +48,19 @@ class DesktopPreferences(
 
     val accentColor: Preference<String> =
         preferenceStore.getString("app_accent_color", "")
+
+    val enableStickyFullContent: Preference<Boolean> =
+        preferenceStore.getBoolean("enable_sticky_full_content", true)
+
+    val stickyFullContentScope: Preference<DesktopStickyFullContentScope> =
+        preferenceStore.getEnum("sticky_full_content_scope", DesktopStickyFullContentScope.default)
+}
+
+enum class DesktopStickyFullContentScope {
+    PER_FEED,
+    ALL_FEEDS;
+
+    companion object {
+        val default = PER_FEED
+    }
 }

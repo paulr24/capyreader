@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -65,6 +66,7 @@ import com.capyreader.desktop.storage.DesktopAIProvider
 import com.capyreader.desktop.storage.DesktopFontFamily
 import com.capyreader.desktop.ui.components.DesktopColorPicker
 import com.capyreader.desktop.storage.DesktopGeminiModels
+import com.capyreader.desktop.storage.DesktopStickyFullContentScope
 import com.capyreader.desktop.storage.DesktopThemeMode
 import com.jocmp.capy.accounts.AutoDelete
 import com.jocmp.capy.accounts.MaxArticles
@@ -99,6 +101,12 @@ fun DesktopSettingsDialog(
     }
     var sortOrder by remember {
         mutableStateOf(state.preferences.sortOrder.get())
+    }
+    var enableStickyFullContent by remember {
+        mutableStateOf(state.preferences.enableStickyFullContent.get())
+    }
+    var stickyFullContentScope by remember {
+        mutableStateOf(state.preferences.stickyFullContentScope.get())
     }
     val themeMode by state.themeMode.collectAsState()
     val fontFamily by state.fontFamily.collectAsState()
@@ -398,7 +406,60 @@ fun DesktopSettingsDialog(
                         }
                     }
 
-                    // SECTION 3: APPEARANCE & DISPLAY
+                    // SECTION 3: READING & FULL CONTENT
+                    SettingsSection(
+                        title = "Reading & Full Content",
+                        icon = Icons.Default.Article
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Sticky Full Content",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Automatically remember your choice and continue loading full article content for subsequent articles.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Switch(
+                                checked = enableStickyFullContent,
+                                onCheckedChange = {
+                                    enableStickyFullContent = it
+                                    state.updateEnableStickyFullContent(it)
+                                }
+                            )
+                        }
+
+                        if (enableStickyFullContent) {
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            val scopeOptions = listOf(
+                                DesktopStickyFullContentScope.PER_FEED to "Per Feed (Default - like Android app)",
+                                DesktopStickyFullContentScope.ALL_FEEDS to "All Feeds (Global stickiness)"
+                            )
+
+                            SettingsDropdown(
+                                label = "Sticky Scope",
+                                subtitle = "Choose whether loading full content sticks only for articles from that specific feed, or across all feeds you read.",
+                                selected = stickyFullContentScope,
+                                options = scopeOptions,
+                                onSelect = {
+                                    stickyFullContentScope = it
+                                    state.updateStickyFullContentScope(it)
+                                }
+                            )
+                        }
+                    }
+
+                    // SECTION 4: APPEARANCE & DISPLAY
                     SettingsSection(
                         title = "Appearance & Display",
                         icon = Icons.Default.Palette

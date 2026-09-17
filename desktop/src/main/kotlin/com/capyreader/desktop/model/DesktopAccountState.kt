@@ -8,6 +8,7 @@ import com.capyreader.desktop.storage.DesktopFontFamily
 import com.capyreader.desktop.storage.DesktopPaths
 import com.capyreader.desktop.storage.DesktopPreferenceStoreProvider
 import com.capyreader.desktop.storage.DesktopPreferences
+import com.capyreader.desktop.storage.DesktopStickyFullContentScope
 import com.capyreader.desktop.storage.DesktopThemeMode
 import com.jocmp.capy.Account
 import com.jocmp.capy.AccountManager
@@ -102,8 +103,27 @@ class DesktopAccountState(
     private val _isTextInputActive = MutableStateFlow(false)
     val isTextInputActive = _isTextInputActive.asStateFlow()
 
+    private val _enableStickyFullContent = MutableStateFlow(preferences.enableStickyFullContent.get())
+    val enableStickyFullContent = _enableStickyFullContent.asStateFlow()
+
+    private val _stickyFullContentScope = MutableStateFlow(preferences.stickyFullContentScope.get())
+    val stickyFullContentScope = _stickyFullContentScope.asStateFlow()
+
+    private val _globalStickyActive = MutableStateFlow(false)
+    val globalStickyActive = _globalStickyActive.asStateFlow()
+
     fun setTextInputActive(active: Boolean) {
         _isTextInputActive.value = active
+    }
+
+    fun updateEnableStickyFullContent(enabled: Boolean) {
+        preferences.enableStickyFullContent.set(enabled)
+        _enableStickyFullContent.value = enabled
+    }
+
+    fun updateStickyFullContentScope(scopeOption: DesktopStickyFullContentScope) {
+        preferences.stickyFullContentScope.set(scopeOption)
+        _stickyFullContentScope.value = scopeOption
     }
 
     init {
@@ -267,7 +287,15 @@ class DesktopAccountState(
                 }
             }
         }
-        if (article.enableStickyFullContent && article.fullContent == Article.FullContentState.NONE) {
+        val isSticky = _enableStickyFullContent.value
+        val isGlobal = _stickyFullContentScope.value == DesktopStickyFullContentScope.ALL_FEEDS
+        val shouldAutoLoad = isSticky && (
+            (isGlobal && _globalStickyActive.value) ||
+            article.enableStickyFullContent ||
+            (_currentAccount.value?.let { runCatching { it.isFullContentEnabled(article.feedID) }.getOrDefault(false) } == true)
+        )
+
+        if (shouldAutoLoad && article.fullContent == Article.FullContentState.NONE) {
             toggleFullContent(article)
         }
     }
@@ -279,12 +307,24 @@ class DesktopAccountState(
 
     fun toggleFullContent(article: Article) {
         val current = _selectedArticle.value?.takeIf { it.id == article.id } ?: article
+        val account = _currentAccount.value ?: return
+
         if (current.fullContent == Article.FullContentState.LOADED) {
             val reverted = current.copy(
                 content = current.defaultContent,
                 fullContent = Article.FullContentState.NONE
             )
             updateArticle(reverted)
+            _globalStickyActive.value = false
+
+            if (_enableStickyFullContent.value) {
+                scope.launch(Dispatchers.IO) {
+                    account.disableStickyContent(current.feedID)
+                    _articles.value = _articles.value.map {
+                        if (it.feedID == current.feedID) it.copy(enableStickyFullContent = false) else it
+                    }
+                }
+            }
             return
         }
 
@@ -294,8 +334,17 @@ class DesktopAccountState(
 
         val loadingArticle = current.copy(fullContent = Article.FullContentState.LOADING)
         updateArticle(loadingArticle)
+        _globalStickyActive.value = true
 
-        val account = _currentAccount.value ?: return
+        if (_enableStickyFullContent.value) {
+            scope.launch(Dispatchers.IO) {
+                account.enableStickyContent(current.feedID)
+                _articles.value = _articles.value.map {
+                    if (it.feedID == current.feedID) it.copy(enableStickyFullContent = true) else it
+                }
+            }
+        }
+
         scope.launch(Dispatchers.IO) {
             val result = account.fetchFullContent(current)
             result.fold(
