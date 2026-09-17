@@ -65,22 +65,42 @@ fun DesktopColorPicker(
     onColorSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val initialColor = remember(currentHex) {
+        parseHexColor(currentHex) ?: Color(0xFFE28434)
+    }
+
     var hexInput by remember(currentHex) {
         mutableStateOf(if (currentHex.isNotBlank()) currentHex else "#E28434")
     }
 
-    val parsedColor = remember(hexInput) {
-        parseHexColor(hexInput) ?: Color(0xFFE28434)
+    var redVal by remember(currentHex) {
+        mutableFloatStateOf(initialColor.red * 255f)
+    }
+    var greenVal by remember(currentHex) {
+        mutableFloatStateOf(initialColor.green * 255f)
+    }
+    var blueVal by remember(currentHex) {
+        mutableFloatStateOf(initialColor.blue * 255f)
     }
 
-    var redVal by remember(parsedColor) {
-        mutableFloatStateOf(parsedColor.red * 255f)
+    val previewColor = remember(redVal, greenVal, blueVal) {
+        Color(
+            redVal.toInt().coerceIn(0, 255),
+            greenVal.toInt().coerceIn(0, 255),
+            blueVal.toInt().coerceIn(0, 255)
+        )
     }
-    var greenVal by remember(parsedColor) {
-        mutableFloatStateOf(parsedColor.green * 255f)
-    }
-    var blueVal by remember(parsedColor) {
-        mutableFloatStateOf(parsedColor.blue * 255f)
+
+    fun updateFromRgb(r: Float, g: Float, b: Float) {
+        redVal = r
+        greenVal = g
+        blueVal = b
+        val rInt = r.toInt().coerceIn(0, 255)
+        val gInt = g.toInt().coerceIn(0, 255)
+        val bInt = b.toInt().coerceIn(0, 255)
+        val hex = String.format("#%02X%02X%02X", rInt, gInt, bInt)
+        hexInput = hex
+        onColorSelected(hex)
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -105,10 +125,13 @@ fun DesktopColorPicker(
                         .clip(CircleShape)
                         .background(preset.color)
                         .clickable {
+                            val r = preset.color.red * 255f
+                            val g = preset.color.green * 255f
+                            val b = preset.color.blue * 255f
+                            redVal = r
+                            greenVal = g
+                            blueVal = b
                             hexInput = preset.hex
-                            redVal = preset.color.red * 255f
-                            greenVal = preset.color.green * 255f
-                            blueVal = preset.color.blue * 255f
                             onColorSelected(preset.hex)
                         }
                         .border(
@@ -141,7 +164,7 @@ fun DesktopColorPicker(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(parsedColor)
+                    .background(previewColor)
                     .border(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
@@ -175,6 +198,9 @@ fun DesktopColorPicker(
             TextButton(
                 onClick = {
                     hexInput = "#E28434"
+                    redVal = 0xE2.toFloat()
+                    greenVal = 0x84.toFloat()
+                    blueVal = 0x34.toFloat()
                     onColorSelected("")
                 }
             ) {
@@ -210,13 +236,7 @@ fun DesktopColorPicker(
                     )
                     Slider(
                         value = redVal,
-                        onValueChange = {
-                            redVal = it
-                            val newColor = Color(redVal.toInt(), greenVal.toInt(), blueVal.toInt())
-                            val hex = String.format("#%02X%02X%02X", newColor.red.toInt() * 255, newColor.green.toInt() * 255, newColor.blue.toInt() * 255)
-                            hexInput = hex
-                            onColorSelected(hex)
-                        },
+                        onValueChange = { updateFromRgb(it, greenVal, blueVal) },
                         valueRange = 0f..255f,
                         modifier = Modifier.weight(1f),
                         colors = SliderDefaults.colors(
@@ -225,7 +245,7 @@ fun DesktopColorPicker(
                         )
                     )
                     Text(
-                        text = "${redVal.toInt()}",
+                        text = "${redVal.toInt().coerceIn(0, 255)}",
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.width(32.dp)
                     )
@@ -244,13 +264,7 @@ fun DesktopColorPicker(
                     )
                     Slider(
                         value = greenVal,
-                        onValueChange = {
-                            greenVal = it
-                            val newColor = Color(redVal.toInt(), greenVal.toInt(), blueVal.toInt())
-                            val hex = String.format("#%02X%02X%02X", newColor.red.toInt() * 255, newColor.green.toInt() * 255, newColor.blue.toInt() * 255)
-                            hexInput = hex
-                            onColorSelected(hex)
-                        },
+                        onValueChange = { updateFromRgb(redVal, it, blueVal) },
                         valueRange = 0f..255f,
                         modifier = Modifier.weight(1f),
                         colors = SliderDefaults.colors(
@@ -259,7 +273,7 @@ fun DesktopColorPicker(
                         )
                     )
                     Text(
-                        text = "${greenVal.toInt()}",
+                        text = "${greenVal.toInt().coerceIn(0, 255)}",
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.width(32.dp)
                     )
@@ -278,13 +292,7 @@ fun DesktopColorPicker(
                     )
                     Slider(
                         value = blueVal,
-                        onValueChange = {
-                            blueVal = it
-                            val newColor = Color(redVal.toInt(), greenVal.toInt(), blueVal.toInt())
-                            val hex = String.format("#%02X%02X%02X", newColor.red.toInt() * 255, newColor.green.toInt() * 255, newColor.blue.toInt() * 255)
-                            hexInput = hex
-                            onColorSelected(hex)
-                        },
+                        onValueChange = { updateFromRgb(redVal, greenVal, it) },
                         valueRange = 0f..255f,
                         modifier = Modifier.weight(1f),
                         colors = SliderDefaults.colors(
@@ -293,7 +301,7 @@ fun DesktopColorPicker(
                         )
                     )
                     Text(
-                        text = "${blueVal.toInt()}",
+                        text = "${blueVal.toInt().coerceIn(0, 255)}",
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.width(32.dp)
                     )
@@ -302,3 +310,4 @@ fun DesktopColorPicker(
         }
     }
 }
+
