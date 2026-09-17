@@ -289,14 +289,30 @@ class DesktopAccountState(
         }
         val isSticky = _enableStickyFullContent.value
         val isGlobal = _stickyFullContentScope.value == DesktopStickyFullContentScope.ALL_FEEDS
-        val shouldAutoLoad = isSticky && (
-            (isGlobal && _globalStickyActive.value) ||
-            article.enableStickyFullContent ||
-            (_currentAccount.value?.let { runCatching { it.isFullContentEnabled(article.feedID) }.getOrDefault(false) } == true)
-        )
-
-        if (shouldAutoLoad && article.fullContent == Article.FullContentState.NONE) {
-            toggleFullContent(article)
+        if (isSticky) {
+            if ((isGlobal && _globalStickyActive.value) || article.enableStickyFullContent) {
+                if (article.fullContent == Article.FullContentState.NONE) {
+                    toggleFullContent(article)
+                }
+            } else {
+                val account = _currentAccount.value
+                if (account != null && article.fullContent == Article.FullContentState.NONE) {
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            if (account.isFullContentEnabled(article.feedID)) {
+                                _articles.value = _articles.value.map {
+                                    if (it.feedID == article.feedID) it.copy(enableStickyFullContent = true) else it
+                                }
+                                withContext(Dispatchers.Main) {
+                                    if (_selectedArticle.value?.id == article.id) {
+                                        toggleFullContent(article)
+                                    }
+                                }
+                            }
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
         }
     }
 
