@@ -66,6 +66,7 @@ fun DesktopArticleReader(
     modifier: Modifier = Modifier
 ) {
     val selectedArticle by state.selectedArticle.collectAsState()
+    val currentFontSize by state.fontSize.collectAsState()
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
 
@@ -217,7 +218,6 @@ fun DesktopArticleReader(
                         }
 
                         // Quick font size control
-                        val currentFontSize by state.fontSize.collectAsState()
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(2.dp)
