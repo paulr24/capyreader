@@ -52,6 +52,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import com.capyreader.desktop.ai.DesktopChatMessage
 import com.capyreader.desktop.model.DesktopAccountState
 import com.capyreader.desktop.ui.components.DesktopMarkdownFormatter
@@ -72,6 +75,7 @@ fun DesktopAISummaryCard(
     val isConfigured = aiOptions.isConfigured()
     val modelName = aiOptions.currentModelDisplayName()
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
 
     var isVisible by remember(article.id) { mutableStateOf(true) }
     var isExpanded by remember(article.id) { mutableStateOf(true) }
@@ -499,13 +503,28 @@ fun DesktopAISummaryCard(
                                             onValueChange = { currentQuestion = it },
                                             placeholder = { Text("Ask a question about this article...", fontSize = 12.sp) },
                                             singleLine = true,
-                                            modifier = Modifier.weight(1f),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .onFocusChanged { state.setTextInputActive(it.isFocused) },
                                             shape = RoundedCornerShape(8.dp),
-                                            enabled = !isQuestionStreaming
+                                            enabled = !isQuestionStreaming,
+                                            keyboardActions = KeyboardActions(
+                                                onSend = {
+                                                    if (currentQuestion.isNotBlank() && !isQuestionStreaming) {
+                                                        focusManager.clearFocus()
+                                                        state.setTextInputActive(false)
+                                                        askQuestion()
+                                                    }
+                                                }
+                                            )
                                         )
 
                                         Button(
-                                            onClick = { askQuestion() },
+                                            onClick = {
+                                                focusManager.clearFocus()
+                                                state.setTextInputActive(false)
+                                                askQuestion()
+                                            },
                                             enabled = currentQuestion.isNotBlank() && !isQuestionStreaming,
                                             shape = RoundedCornerShape(8.dp)
                                         ) {

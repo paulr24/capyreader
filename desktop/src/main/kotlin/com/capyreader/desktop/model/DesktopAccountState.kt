@@ -98,6 +98,13 @@ class DesktopAccountState(
     private val _aiSummaryTrigger = MutableStateFlow<String?>(null)
     val aiSummaryTrigger = _aiSummaryTrigger.asStateFlow()
 
+    private val _isTextInputActive = MutableStateFlow(false)
+    val isTextInputActive = _isTextInputActive.asStateFlow()
+
+    fun setTextInputActive(active: Boolean) {
+        _isTextInputActive.value = active
+    }
+
     init {
         val savedAccountID = preferences.accountID.get()
         if (savedAccountID.isNotBlank()) {
@@ -140,12 +147,14 @@ class DesktopAccountState(
     }
 
     fun setFilter(newFilter: ArticleFilter) {
+        _isTextInputActive.value = false
         _filter.value = newFilter
         preferences.filter.set(newFilter)
         refreshArticles()
     }
 
     fun setStatus(newStatus: ArticleStatus) {
+        _isTextInputActive.value = false
         _status.value = newStatus
         _filter.value = _filter.value.withStatus(newStatus)
         preferences.articleStatus.set(newStatus)
@@ -241,6 +250,7 @@ class DesktopAccountState(
     }
 
     fun selectArticle(article: Article?, markAsRead: Boolean = true) {
+        _isTextInputActive.value = false
         _selectedArticle.value = article
         if (article == null) return
         if (markAsRead && !article.read) {
@@ -262,6 +272,7 @@ class DesktopAccountState(
     }
 
     fun clearSelectedArticle() {
+        _isTextInputActive.value = false
         _selectedArticle.value = null
     }
 

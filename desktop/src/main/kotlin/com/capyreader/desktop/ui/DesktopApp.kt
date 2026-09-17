@@ -1,9 +1,6 @@
 package com.capyreader.desktop.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -14,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -23,13 +21,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.capyreader.desktop.model.DesktopAccountState
 import com.capyreader.desktop.ui.articles.DesktopArticleList
@@ -39,13 +39,14 @@ import com.capyreader.desktop.ui.dialogs.DesktopLoginDialog
 import com.capyreader.desktop.ui.dialogs.DesktopSettingsDialog
 import com.capyreader.desktop.ui.sidebar.DesktopSidebar
 import com.capyreader.desktop.ui.theme.DesktopTheme
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.awt.Desktop
 import java.net.URI
 
 @Composable
-fun DesktopApp() {
+fun DesktopApp(
+    onRegisterKeyHandler: (((KeyEvent) -> Boolean)?) -> Unit = {}
+) {
     val scope = rememberCoroutineScope()
     val state = remember { DesktopAccountState(scope = scope) }
     val currentAccount by state.currentAccount.collectAsState()
@@ -57,7 +58,7 @@ fun DesktopApp() {
     var userSidebarOpen by remember { mutableStateOf<Boolean?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(currentAccount) {
         if (currentAccount == null && !state.preferences.isLoggedIn) {
@@ -69,18 +70,6 @@ fun DesktopApp() {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
             state.clearError()
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        repeat(6) {
-            delay(150)
-            try {
-                focusRequester.requestFocus()
-                return@LaunchedEffect
-            } catch (_: Throwable) {
-                // Ignore while node is being measured and attached to focus tree
-            }
         }
     }
 
@@ -110,97 +99,136 @@ fun DesktopApp() {
                 else -> userSidebarOpen ?: true
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .focusRequester(focusRequester)
-                    .focusable()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        try {
-                            focusRequester.requestFocus()
-                        } catch (_: Throwable) {}
-                    }
-                    .onPreviewKeyEvent { event ->
-                        if (event.type == KeyEventType.KeyDown) {
-                            val articles = state.articles.value
-                            val selected = state.selectedArticle.value
-                            val currentIndex = articles.indexOfFirst { it.id == selected?.id }
+            val keyHandler: (KeyEvent) -> Boolean = remember(
+                state,
+                isWide,
+                isNarrow,
+                userSidebarOpen,
+                showLoginDialog,
+                showAddFeedDialog,
+                showSettingsDialog
+            ) {
+                { event ->
+                    if (event.type != KeyEventType.KeyDown) {
+                        false
+                    } else if (showLoginDialog || showAddFeedDialog || showSettingsDialog) {
+                        false
+                    } else if (event.isCtrlPressed || event.isAltPressed || event.isMetaPressed) {
+                        false
+                    } else if (state.isTextInputActive.value) {
+                        if (event.key == Key.Escape) {
+                            state.setTextInputActive(false)
+                            focusManager.clearFocus()
+                            true
+                        } else {
+                            false
+                        }
+                    } else {
+                        val articles = state.articles.value
+                        val selected = state.selectedArticle.value
+                        val currentIndex = articles.indexOfFirst { it.id == selected?.id }
 
-                            when (event.key) {
-                                Key.J, Key.DirectionDown -> {
-                                    if (currentIndex in 0 until articles.size - 1) {
-                                        state.selectArticle(articles[currentIndex + 1])
-                                        true
-                                    } else false
-                                }
-                                Key.K, Key.DirectionUp -> {
-                                    if (currentIndex > 0) {
-                                        state.selectArticle(articles[currentIndex - 1])
-                                        true
-                                    } else false
-                                }
-                                Key.M -> {
-                                    selected?.let { state.toggleRead(it) }
+                        when (event.key) {
+                            Key.J, Key.DirectionDown -> {
+                                if (currentIndex in 0 until articles.size - 1) {
+                                    state.selectArticle(articles[currentIndex + 1])
                                     true
-                                }
-                                Key.S -> {
-                                    selected?.let { state.toggleStarred(it) }
+                                } else if (articles.isNotEmpty() && currentIndex == -1) {
+                                    state.selectArticle(articles[0])
                                     true
-                                }
-                                Key.A, Key.X -> {
-                                    selected?.let { article ->
-                                        if (state.preferences.aiOptions.enabled.get()) {
-                                            state.triggerAISummary(article.id)
-                                        } else {
-                                            scope.launch {
-                                                snackbarHostState.showSnackbar("Enable AI Summarization in Settings to generate summaries.")
-                                            }
+                                } else false
+                            }
+                            Key.K, Key.DirectionUp -> {
+                                if (currentIndex > 0) {
+                                    state.selectArticle(articles[currentIndex - 1])
+                                    true
+                                } else if (articles.isNotEmpty() && currentIndex == -1) {
+                                    state.selectArticle(articles[0])
+                                    true
+                                } else false
+                            }
+                            Key.M -> {
+                                selected?.let { state.toggleRead(it) }
+                                true
+                            }
+                            Key.S -> {
+                                selected?.let { state.toggleStarred(it) }
+                                true
+                            }
+                            Key.A, Key.X -> {
+                                selected?.let { article ->
+                                    if (state.preferences.aiOptions.enabled.get()) {
+                                        state.triggerAISummary(article.id)
+                                    } else {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Enable AI Summarization in Settings to generate summaries.")
                                         }
                                     }
-                                    true
                                 }
-                                Key.F, Key.W -> {
-                                    selected?.let { state.toggleFullContent(it) }
-                                    true
-                                }
-                                Key.Backslash -> {
-                                    val currentlyOpen = userSidebarOpen ?: isWide
-                                    userSidebarOpen = !currentlyOpen
-                                    true
-                                }
-                                Key.Escape -> {
-                                    if (isNarrow && selected != null) {
-                                        state.clearSelectedArticle()
-                                        true
-                                    } else false
-                                }
-                                Key.D -> {
-                                    selected?.let { state.dislikeArticle(it) }
-                                    true
-                                }
-                                Key.R -> {
-                                    state.syncAndRefresh()
-                                    true
-                                }
-                                Key.O -> {
-                                    selected?.url?.let {
-                                        try {
-                                            Desktop.getDesktop().browse(URI.create(it.toString()))
-                                        } catch (_: Exception) {}
-                                    }
-                                    true
-                                }
-                                Key.Comma -> {
-                                    showSettingsDialog = true
-                                    true
-                                }
-                                else -> false
+                                true
                             }
-                        } else false
+                            Key.F, Key.W -> {
+                                selected?.let { state.toggleFullContent(it) }
+                                true
+                            }
+                            Key.Backslash -> {
+                                val currentlyOpen = userSidebarOpen ?: isWide
+                                userSidebarOpen = !currentlyOpen
+                                true
+                            }
+                            Key.Escape -> {
+                                if (isNarrow && selected != null) {
+                                    state.clearSelectedArticle()
+                                    true
+                                } else false
+                            }
+                            Key.D -> {
+                                scope.launch {
+                                    state.deduplicateNow { count ->
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                if (count > 0) "Deduplication complete: cleaned up $count duplicate articles."
+                                                else "Deduplication complete: no duplicate articles found."
+                                            )
+                                        }
+                                    }
+                                }
+                                true
+                            }
+                            Key.R -> {
+                                state.syncAndRefresh()
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Refreshing feeds...")
+                                }
+                                true
+                            }
+                            Key.O -> {
+                                selected?.url?.let {
+                                    try {
+                                        Desktop.getDesktop().browse(URI.create(it.toString()))
+                                    } catch (_: Exception) {}
+                                }
+                                true
+                            }
+                            Key.Comma -> {
+                                showSettingsDialog = true
+                                true
+                            }
+                            else -> false
+                        }
                     }
+                }
+            }
+
+            DisposableEffect(keyHandler) {
+                onRegisterKeyHandler(keyHandler)
+                onDispose {
+                    onRegisterKeyHandler(null)
+                }
+            }
+
+            Box(
+                modifier = Modifier.fillMaxSize()
             ) {
                 if (isNarrow) {
                     // NARROW SCREEN (Mobile / Compact):

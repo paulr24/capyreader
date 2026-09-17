@@ -47,6 +47,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.capyreader.desktop.model.DesktopAccountState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import com.jocmp.capy.Article
 import org.jsoup.Jsoup
 import java.time.format.DateTimeFormatter
@@ -62,6 +65,7 @@ fun DesktopArticleList(
     val articles by state.articles.collectAsState()
     val selectedArticle by state.selectedArticle.collectAsState()
     val searchQuery by state.searchQuery.collectAsState()
+    val focusManager = LocalFocusManager.current
 
     Surface(
         modifier = modifier.fillMaxHeight(),
@@ -98,7 +102,11 @@ fun DesktopArticleList(
                         },
                         trailingIcon = {
                             if (searchQuery.isNotBlank()) {
-                                IconButton(onClick = { state.setSearchQuery("") }) {
+                                IconButton(onClick = {
+                                    state.setSearchQuery("")
+                                    focusManager.clearFocus()
+                                    state.setTextInputActive(false)
+                                }) {
                                     Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(16.dp))
                                 }
                             }
@@ -106,7 +114,19 @@ fun DesktopArticleList(
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
                         textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .onFocusChanged { state.setTextInputActive(it.isFocused) },
+                        keyboardActions = KeyboardActions(
+                            onSearch = {
+                                focusManager.clearFocus()
+                                state.setTextInputActive(false)
+                            },
+                            onDone = {
+                                focusManager.clearFocus()
+                                state.setTextInputActive(false)
+                            }
+                        )
                     )
                 }
 
@@ -153,7 +173,11 @@ fun DesktopArticleList(
                         ArticleItemRow(
                             article = article,
                             isSelected = selectedArticle?.id == article.id,
-                            onClick = { state.selectArticle(article) },
+                            onClick = {
+                                focusManager.clearFocus()
+                                state.setTextInputActive(false)
+                                state.selectArticle(article)
+                            },
                             onToggleStar = { state.toggleStarred(article) },
                             onToggleRead = { state.toggleRead(article) },
                             onDislike = { state.dislikeArticle(article) }
