@@ -2,6 +2,7 @@ package com.capyreader.desktop.storage
 
 import com.jocmp.capy.ArticleFilter
 import com.jocmp.capy.ArticleStatus
+import com.jocmp.capy.articles.FontSize
 import com.jocmp.capy.articles.SortOrder
 import com.jocmp.capy.preferences.Preference
 import com.jocmp.capy.preferences.PreferenceStore
@@ -45,6 +46,9 @@ class DesktopPreferences(
 
     val fontFamily: Preference<DesktopFontFamily> =
         preferenceStore.getEnum("app_font_family", DesktopFontFamily.default)
+
+    val fontSize: Preference<Int> =
+        preferenceStore.getInt("article_font_size", FontSize.DEFAULT)
 
     val accentColor: Preference<String> =
         preferenceStore.getString("app_accent_color", "")

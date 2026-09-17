@@ -53,6 +53,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Node
 import org.jsoup.nodes.TextNode
+import kotlin.math.roundToInt
 
 sealed interface ArticleBlock {
     data class Heading(val text: AnnotatedString, val level: Int) : ArticleBlock
@@ -67,6 +68,7 @@ sealed interface ArticleBlock {
 @Composable
 fun HtmlArticleView(
     html: String,
+    fontSize: Int = 16,
     modifier: Modifier = Modifier
 ) {
     val uriHandler = LocalUriHandler.current
@@ -86,11 +88,12 @@ fun HtmlArticleView(
             if (blocks.isEmpty()) {
                 val plain = remember(html) { Jsoup.parse(html).text() }
                 if (plain.isNotBlank()) {
+                    val bodyLineHeight = (fontSize * 1.625f).roundToInt().sp
                     Text(
                         text = plain,
                         style = MaterialTheme.typography.bodyLarge.copy(
-                            fontSize = 16.sp,
-                            lineHeight = 26.sp,
+                            fontSize = fontSize.sp,
+                            lineHeight = bodyLineHeight,
                             color = onSurfaceColor
                         )
                     )
@@ -99,6 +102,7 @@ fun HtmlArticleView(
                 blocks.forEach { block ->
                     RenderBlock(
                         block = block,
+                        fontSize = fontSize,
                         onOpenUrl = { url ->
                             try {
                                 uriHandler.openUri(url)
@@ -114,6 +118,7 @@ fun HtmlArticleView(
 @Composable
 private fun RenderBlock(
     block: ArticleBlock,
+    fontSize: Int,
     onOpenUrl: (String) -> Unit
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -121,18 +126,18 @@ private fun RenderBlock(
 
     when (block) {
         is ArticleBlock.Heading -> {
-            val (fontSize, lineHeight, topPadding, bottomPadding) = when (block.level) {
-                1 -> Quadruple(24.sp, 32.sp, 20.dp, 8.dp)
-                2 -> Quadruple(20.sp, 28.sp, 18.dp, 8.dp)
-                3 -> Quadruple(18.sp, 24.sp, 16.dp, 6.dp)
-                else -> Quadruple(16.sp, 22.sp, 14.dp, 4.dp)
+            val (hSize, hLineHeight, topPadding, bottomPadding) = when (block.level) {
+                1 -> Quadruple((fontSize * 1.5f).roundToInt().sp, (fontSize * 2.0f).roundToInt().sp, 20.dp, 8.dp)
+                2 -> Quadruple((fontSize * 1.3f).roundToInt().sp, (fontSize * 1.75f).roundToInt().sp, 18.dp, 8.dp)
+                3 -> Quadruple((fontSize * 1.15f).roundToInt().sp, (fontSize * 1.55f).roundToInt().sp, 16.dp, 6.dp)
+                else -> Quadruple(fontSize.sp, (fontSize * 1.45f).roundToInt().sp, 14.dp, 4.dp)
             }
             ClickableText(
                 text = block.text,
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = fontSize,
-                    lineHeight = lineHeight,
+                    fontSize = hSize,
+                    lineHeight = hLineHeight,
                     color = onSurfaceColor
                 ),
                 modifier = Modifier
@@ -147,11 +152,12 @@ private fun RenderBlock(
             )
         }
         is ArticleBlock.Paragraph -> {
+            val pLineHeight = (fontSize * 1.625f).roundToInt().sp
             ClickableText(
                 text = block.text,
                 style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 16.sp,
-                    lineHeight = 26.sp,
+                    fontSize = fontSize.sp,
+                    lineHeight = pLineHeight,
                     color = onSurfaceColor
                 ),
                 modifier = Modifier
@@ -183,12 +189,14 @@ private fun RenderBlock(
                     shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                 ) {
+                    val qSize = (fontSize * 0.95f).roundToInt().sp
+                    val qLineHeight = (fontSize * 1.55f).roundToInt().sp
                     ClickableText(
                         text = block.text,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontStyle = FontStyle.Italic,
-                            fontSize = 15.sp,
-                            lineHeight = 24.sp,
+                            fontSize = qSize,
+                            lineHeight = qLineHeight,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         modifier = Modifier.padding(12.dp),
@@ -203,6 +211,8 @@ private fun RenderBlock(
             }
         }
         is ArticleBlock.ListBlock -> {
+            val itemSize = (fontSize * 0.95f).roundToInt().sp
+            val itemLineHeight = (fontSize * 1.55f).roundToInt().sp
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -220,15 +230,16 @@ private fun RenderBlock(
                             text = prefix,
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = primaryColor
+                                color = primaryColor,
+                                fontSize = itemSize
                             ),
-                            lineHeight = 24.sp
+                            lineHeight = itemLineHeight
                         )
                         ClickableText(
                             text = itemText,
                             style = MaterialTheme.typography.bodyLarge.copy(
-                                fontSize = 15.sp,
-                                lineHeight = 24.sp,
+                                fontSize = itemSize,
+                                lineHeight = itemLineHeight,
                                 color = onSurfaceColor
                             ),
                             modifier = Modifier.weight(1f),
@@ -244,6 +255,8 @@ private fun RenderBlock(
             }
         }
         is ArticleBlock.CodeBlock -> {
+            val codeSize = (fontSize * 0.85f).roundToInt().sp
+            val codeLineHeight = (fontSize * 1.4f).roundToInt().sp
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -256,9 +269,9 @@ private fun RenderBlock(
                     text = block.code,
                     style = TextStyle(
                         fontFamily = FontFamily.Monospace,
-                        fontSize = 13.sp,
+                        fontSize = codeSize,
                         color = Color(0xFFD4D4D4),
-                        lineHeight = 20.sp
+                        lineHeight = codeLineHeight
                     )
                 )
             }
@@ -498,6 +511,13 @@ private fun buildAnnotatedStringFromNodes(
     textColor: Color
 ): AnnotatedString {
     val builder = AnnotatedString.Builder()
+    var lastChar: Char? = null
+
+    fun appendText(str: String) {
+        if (str.isEmpty()) return
+        builder.append(str)
+        lastChar = str.last()
+    }
 
     fun appendNode(curr: Node) {
         when (curr) {
@@ -505,29 +525,29 @@ private fun buildAnnotatedStringFromNodes(
                 val whole = curr.wholeText
                 if (whole.isNotEmpty()) {
                     val normalized = whole.replace(Regex("\\s+"), " ")
-                    val needsLeadingSpace = whole.first().isWhitespace() &&
-                            builder.length > 0 &&
-                            !builder.toAnnotatedString().text.last().isWhitespace()
-                    val needsTrailingSpace = whole.last().isWhitespace()
-
-                    if (needsLeadingSpace && !normalized.startsWith(" ")) {
-                        builder.append(" ")
-                    }
+                    val hasLeadingSpace = whole.first().isWhitespace()
+                    val hasTrailingSpace = whole.last().isWhitespace()
                     val trimmed = normalized.trim()
-                    if (trimmed.isNotEmpty()) {
-                        builder.append(trimmed)
-                        if (needsTrailingSpace) {
-                            builder.append(" ")
+
+                    if (trimmed.isEmpty()) {
+                        if (lastChar != null && !lastChar!!.isWhitespace()) {
+                            appendText(" ")
                         }
-                    } else if (builder.length > 0 && !builder.toAnnotatedString().text.last().isWhitespace()) {
-                        builder.append(" ")
+                    } else {
+                        if (hasLeadingSpace && lastChar != null && !lastChar!!.isWhitespace()) {
+                            appendText(" ")
+                        }
+                        appendText(trimmed)
+                        if (hasTrailingSpace && lastChar != null && !lastChar!!.isWhitespace()) {
+                            appendText(" ")
+                        }
                     }
                 }
             }
             is Element -> {
                 val tag = curr.tagName().lowercase()
                 if (tag == "br") {
-                    builder.append("\n")
+                    appendText("\n")
                     return
                 }
 

@@ -53,6 +53,7 @@ import java.awt.Desktop
 import java.net.URI
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import kotlin.math.roundToInt
 
 @Composable
 fun DesktopArticleReader(
@@ -215,6 +216,33 @@ fun DesktopArticleReader(
                             )
                         }
 
+                        // Quick font size control
+                        val currentFontSize by state.fontSize.collectAsState()
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            IconButton(
+                                onClick = { state.updateFontSize(currentFontSize - 2) },
+                                enabled = currentFontSize > 12,
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Text("A-", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                            }
+                            Text(
+                                text = "${currentFontSize}px",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            IconButton(
+                                onClick = { state.updateFontSize(currentFontSize + 2) },
+                                enabled = currentFontSize < 32,
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Text("A+", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                            }
+                        }
+
                         // Open in external browser
                         if (article.url != null) {
                             OutlinedButton(
@@ -246,12 +274,17 @@ fun DesktopArticleReader(
                         .verticalScroll(scrollState)
                         .padding(horizontal = 48.dp, vertical = 24.dp)
                 ) {
+                    val titleFontSize = (currentFontSize * 1.5f).roundToInt().sp
+                    val titleLineHeight = (currentFontSize * 2.0f).roundToInt().sp
                     // Headline
                     Text(
                         text = article.title.ifBlank { "Untitled" },
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        lineHeight = 36.sp
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = titleFontSize,
+                            lineHeight = titleLineHeight
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     if (!article.author.isNullOrBlank()) {
@@ -380,6 +413,7 @@ fun DesktopArticleReader(
                     // Article HTML Content
                     HtmlArticleView(
                         html = article.content,
+                        fontSize = currentFontSize,
                         modifier = Modifier.fillMaxWidth()
                     )
 

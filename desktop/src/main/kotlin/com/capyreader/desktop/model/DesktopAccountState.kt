@@ -94,6 +94,9 @@ class DesktopAccountState(
     private val _fontFamily = MutableStateFlow(preferences.fontFamily.get())
     val fontFamily = _fontFamily.asStateFlow()
 
+    private val _fontSize = MutableStateFlow(preferences.fontSize.get())
+    val fontSize = _fontSize.asStateFlow()
+
     private val _accentColor = MutableStateFlow(preferences.accentColor.get())
     val accentColor = _accentColor.asStateFlow()
 
@@ -626,6 +629,12 @@ class DesktopAccountState(
     fun updateFontFamily(family: DesktopFontFamily) {
         preferences.fontFamily.set(family)
         _fontFamily.value = family
+    }
+
+    fun updateFontSize(size: Int) {
+        val clamped = size.coerceIn(12, 32)
+        preferences.fontSize.set(clamped)
+        _fontSize.value = clamped
     }
 
     fun updateAccentColor(hex: String) {

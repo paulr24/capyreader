@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -68,6 +69,7 @@ import com.capyreader.desktop.ui.components.DesktopColorPicker
 import com.capyreader.desktop.storage.DesktopGeminiModels
 import com.capyreader.desktop.storage.DesktopStickyFullContentScope
 import com.capyreader.desktop.storage.DesktopThemeMode
+import kotlin.math.roundToInt
 import com.jocmp.capy.accounts.AutoDelete
 import com.jocmp.capy.accounts.MaxArticles
 import com.jocmp.capy.accounts.Source
@@ -484,12 +486,7 @@ fun DesktopSettingsDialog(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        val fontOptions = listOf(
-                            DesktopFontFamily.SYSTEM_DEFAULT to "System Default",
-                            DesktopFontFamily.SANS_SERIF to "Sans-Serif (Modern / Clean)",
-                            DesktopFontFamily.SERIF to "Serif (Book / Editorial)",
-                            DesktopFontFamily.MONOSPACE to "Monospace (Technical / Code)",
-                        )
+                        val fontOptions = DesktopFontFamily.options
 
                         SettingsDropdown(
                             label = "Font Family",
@@ -500,6 +497,71 @@ fun DesktopSettingsDialog(
                                 state.updateFontFamily(it)
                             }
                         )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        val currentFontSize by state.fontSize.collectAsState()
+
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Article Font Size",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Scale reading text and headings to your preferred comfort size (${currentFontSize}px).",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { state.updateFontSize(currentFontSize - 2) },
+                                        enabled = currentFontSize > 12,
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("A-", fontWeight = FontWeight.Bold)
+                                    }
+                                    Text(
+                                        text = "${currentFontSize}px",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    )
+                                    OutlinedButton(
+                                        onClick = { state.updateFontSize(currentFontSize + 2) },
+                                        enabled = currentFontSize < 32,
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("A+", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "The quick brown fox jumps over the lazy dog.",
+                                    fontSize = currentFontSize.sp,
+                                    lineHeight = (currentFontSize * 1.5f).roundToInt().sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(12.dp))
 

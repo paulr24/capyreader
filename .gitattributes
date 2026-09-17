@@ -7,3 +7,7 @@ feedfinder/src/test/resources/*.html linguist-generated=true
 feedfinder/src/test/resources/*.xml linguist-generated=true
 rssparser/src/test/resources/*.html linguist-generated=true
 rssparser/src/test/resources/*.xml linguist-generated=true
+
+*.ttf binary
+*.ico binary
+*.png binary

@@ -157,11 +157,8 @@ fun DesktopTheme(
         baseColorScheme
     }
 
-    val composeFontFamily = when (fontFamily) {
-        DesktopFontFamily.SYSTEM_DEFAULT -> FontFamily.Default
-        DesktopFontFamily.SANS_SERIF -> FontFamily.SansSerif
-        DesktopFontFamily.SERIF -> FontFamily.Serif
-        DesktopFontFamily.MONOSPACE -> FontFamily.Monospace
+    val composeFontFamily = remember(fontFamily) {
+        DesktopFontLoader.load(fontFamily)
     }
 
     val typography = remember(composeFontFamily) {
