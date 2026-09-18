@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.capyreader.desktop.ui.components.gentleMouseScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -206,8 +208,13 @@ fun DesktopSidebar(
             }
 
             // Feeds & Folders list
+            val sidebarListState = rememberLazyListState()
             LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxWidth()
+                state = sidebarListState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .gentleMouseScroll(sidebarListState, pixelsPerStep = 36f)
             ) {
                 // Folders
                 items(folders) { folder ->

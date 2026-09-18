@@ -30,6 +30,7 @@ fun main() {
             }
         ) {
             DesktopApp(
+                window = window,
                 onRegisterKeyHandler = { handler ->
                     keyEventHandler = handler
                 }

@@ -6,9 +6,11 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import java.awt.Window
 import com.capyreader.desktop.storage.DesktopFontFamily
 import com.capyreader.desktop.storage.DesktopThemeMode
 
@@ -131,12 +133,19 @@ private fun getDesktopTypography(fontFamily: FontFamily): Typography {
 
 @Composable
 fun DesktopTheme(
+    window: Window? = null,
     themeMode: DesktopThemeMode = DesktopThemeMode.SYSTEM,
     fontFamily: DesktopFontFamily = DesktopFontFamily.SYSTEM_DEFAULT,
     accentColorHex: String = "",
     content: @Composable () -> Unit
 ) {
     val isSystemDark = isSystemInDarkTheme()
+    val isDark = when (themeMode) {
+        DesktopThemeMode.SYSTEM -> isSystemDark
+        DesktopThemeMode.DARK, DesktopThemeMode.BLACK -> true
+        DesktopThemeMode.LIGHT, DesktopThemeMode.SEPIA -> false
+    }
+
     val baseColorScheme = when (themeMode) {
         DesktopThemeMode.SYSTEM -> if (isSystemDark) DarkColorScheme else LightColorScheme
         DesktopThemeMode.LIGHT -> LightColorScheme
@@ -155,6 +164,12 @@ fun DesktopTheme(
         )
     } else {
         baseColorScheme
+    }
+
+    if (window != null) {
+        LaunchedEffect(window, colorScheme, isDark) {
+            DesktopWindowTheme.applyTheme(window, colorScheme, isDark)
+        }
     }
 
     val composeFontFamily = remember(fontFamily) {

@@ -25,6 +25,7 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.okhttp.client)
     implementation(libs.org.json)
+    implementation(libs.jna)
 
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)

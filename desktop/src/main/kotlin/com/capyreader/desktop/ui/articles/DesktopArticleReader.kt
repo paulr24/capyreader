@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.capyreader.desktop.model.DesktopAccountState
 import com.capyreader.desktop.ui.components.HtmlArticleView
+import com.capyreader.desktop.ui.components.gentleMouseScroll
 import java.awt.Desktop
 import java.net.URI
 import java.time.format.DateTimeFormatter
@@ -271,6 +272,10 @@ fun DesktopArticleReader(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .gentleMouseScroll(
+                            scrollableState = scrollState,
+                            pixelsPerStep = (currentFontSize * 2.0f).coerceAtLeast(32f)
+                        )
                         .verticalScroll(scrollState)
                         .padding(horizontal = 48.dp, vertical = 24.dp)
                 ) {

@@ -41,10 +41,12 @@ import com.capyreader.desktop.ui.sidebar.DesktopSidebar
 import com.capyreader.desktop.ui.theme.DesktopTheme
 import kotlinx.coroutines.launch
 import java.awt.Desktop
+import java.awt.Window
 import java.net.URI
 
 @Composable
 fun DesktopApp(
+    window: Window? = null,
     onRegisterKeyHandler: (((KeyEvent) -> Boolean)?) -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
@@ -78,6 +80,7 @@ fun DesktopApp(
     val accentColor by state.accentColor.collectAsState()
 
     DesktopTheme(
+        window = window,
         themeMode = themeMode,
         fontFamily = fontFamily,
         accentColorHex = accentColor

@@ -16,6 +16,7 @@ paging-compose = "3.4.2"
 sqldelight = "2.3.2"
 zoomable = "0.19.0"
 compose-multiplatform = "1.7.3"
+jna = "5.14.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version = "1.13.0" }
@@ -57,6 +58,7 @@ coil-video = { module = "io.coil-kt.coil3:coil-video", version.ref = "coil" }
 converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "retrofit" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics", version = "20.0.5" }
 jsoup = { module = "org.jsoup:jsoup", version = "1.22.1" }
+jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 koin-android = { module = "io.insert-koin:koin-android" }
 koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose" }
 koin-androidx-workmanager = { module = "io.insert-koin:koin-androidx-workmanager" }
