@@ -37,9 +37,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,6 +71,53 @@ fun DesktopArticleList(
     val selectedArticle by state.selectedArticle.collectAsState()
     val searchQuery by state.searchQuery.collectAsState()
     val focusManager = LocalFocusManager.current
+    val listState = rememberLazyListState()
+
+    val selectedIndex = remember(articles, selectedArticle?.id) {
+        articles.indexOfFirst { it.id == selectedArticle?.id }
+    }
+
+    LaunchedEffect(selectedArticle?.id) {
+        if (selectedIndex < 0) return@LaunchedEffect
+        val layoutInfo = listState.layoutInfo
+        val visibleItems = layoutInfo.visibleItemsInfo
+        if (visibleItems.isEmpty()) {
+            listState.scrollToItem(selectedIndex)
+            return@LaunchedEffect
+        }
+
+        val itemInfo = visibleItems.firstOrNull { it.index == selectedIndex }
+        val viewportStart = layoutInfo.viewportStartOffset
+        val viewportEnd = layoutInfo.viewportEndOffset
+
+        if (itemInfo != null) {
+            val isFullyVisible = itemInfo.offset >= viewportStart && (itemInfo.offset + itemInfo.size) <= viewportEnd
+            if (!isFullyVisible) {
+                if (itemInfo.offset < viewportStart) {
+                    listState.animateScrollToItem(selectedIndex, 0)
+                } else if ((itemInfo.offset + itemInfo.size) > viewportEnd) {
+                    val overflow = (itemInfo.offset + itemInfo.size) - viewportEnd
+                    listState.animateScrollBy((overflow + 16).toFloat())
+                }
+            }
+        } else {
+            val firstVisible = visibleItems.first().index
+            val lastVisible = visibleItems.last().index
+            if (selectedIndex < firstVisible) {
+                listState.animateScrollToItem(selectedIndex, 0)
+            } else if (selectedIndex > lastVisible) {
+                val visibleCount = visibleItems.size
+                val targetTop = (selectedIndex - visibleCount + 1).coerceAtLeast(0)
+                listState.animateScrollToItem(targetTop)
+                val updatedLayout = listState.layoutInfo
+                val updatedItem = updatedLayout.visibleItemsInfo.firstOrNull { it.index == selectedIndex }
+                if (updatedItem != null && (updatedItem.offset + updatedItem.size) > updatedLayout.viewportEndOffset) {
+                    val overflow = (updatedItem.offset + updatedItem.size) - updatedLayout.viewportEndOffset
+                    listState.animateScrollBy((overflow + 16).toFloat())
+                }
+            }
+        }
+    }
 
     Surface(
         modifier = modifier.fillMaxHeight(),
@@ -170,7 +220,6 @@ fun DesktopArticleList(
                     )
                 }
             } else {
-                val listState = rememberLazyListState()
                 LazyColumn(
                     state = listState,
                     modifier = Modifier

@@ -273,20 +273,54 @@ class DesktopAccountState(
         }
     }
 
+    private val explicitlyUnreadArticleIDs = mutableSetOf<String>()
+
     fun selectArticle(article: Article?, markAsRead: Boolean = true) {
         _isTextInputActive.value = false
-        _selectedArticle.value = article
-        if (article == null) return
-        if (markAsRead && !article.read) {
-            val account = _currentAccount.value ?: return
-            scope.launch(Dispatchers.IO) {
-                account.markRead(article.id)
-                // update local state
-                _articles.value = _articles.value.map {
-                    if (it.id == article.id) it.copy(read = true) else it
+        if (article == null) {
+            _selectedArticle.value = null
+            return
+        }
+
+        // Mark previously selected article as read if user is navigating away from it
+        // and did not explicitly mark it unread.
+        val previous = _selectedArticle.value
+        if (previous != null && previous.id != article.id && !previous.read && !explicitlyUnreadArticleIDs.contains(previous.id)) {
+            val prevUpdated = previous.copy(read = true)
+            _articles.value = _articles.value.map {
+                if (it.id == prevUpdated.id) prevUpdated else it
+            }
+            val account = _currentAccount.value
+            if (account != null) {
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        account.markRead(prevUpdated.id)
+                    } catch (e: Throwable) {
+                        e.printStackTrace()
+                    }
                 }
-                if (_selectedArticle.value?.id == article.id) {
-                    _selectedArticle.value = article.copy(read = true)
+            }
+        }
+
+        // Optimistically mark newly selected article as read immediately
+        val willMarkRead = markAsRead && !article.read
+        val updatedArticle = if (willMarkRead) article.copy(read = true) else article
+
+        _selectedArticle.value = updatedArticle
+        explicitlyUnreadArticleIDs.remove(article.id)
+
+        if (willMarkRead) {
+            _articles.value = _articles.value.map {
+                if (it.id == article.id) updatedArticle else it
+            }
+            val account = _currentAccount.value
+            if (account != null) {
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        account.markRead(article.id)
+                    } catch (e: Throwable) {
+                        e.printStackTrace()
+                    }
                 }
             }
         }
@@ -408,47 +442,68 @@ class DesktopAccountState(
 
     fun toggleStarred(article: Article) {
         val account = _currentAccount.value ?: return
+        val newStarred = !article.starred
+        val updated = article.copy(starred = newStarred)
+        _articles.value = _articles.value.map {
+            if (it.id == article.id) updated else it
+        }
+        if (_selectedArticle.value?.id == article.id) {
+            _selectedArticle.value = updated
+        }
         scope.launch(Dispatchers.IO) {
-            val newStarred = !article.starred
-            if (newStarred) {
-                account.addStar(article.id)
-            } else {
-                account.removeStar(article.id)
-            }
-            _articles.value = _articles.value.map {
-                if (it.id == article.id) it.copy(starred = newStarred) else it
-            }
-            if (_selectedArticle.value?.id == article.id) {
-                _selectedArticle.value = article.copy(starred = newStarred)
+            try {
+                if (newStarred) {
+                    account.addStar(article.id)
+                } else {
+                    account.removeStar(article.id)
+                }
+            } catch (e: Throwable) {
+                e.printStackTrace()
             }
         }
     }
 
     fun toggleRead(article: Article) {
         val account = _currentAccount.value ?: return
+        val newRead = !article.read
+        if (!newRead) {
+            explicitlyUnreadArticleIDs.add(article.id)
+        } else {
+            explicitlyUnreadArticleIDs.remove(article.id)
+        }
+
+        val updated = article.copy(read = newRead)
+        _articles.value = _articles.value.map {
+            if (it.id == article.id) updated else it
+        }
+        if (_selectedArticle.value?.id == article.id) {
+            _selectedArticle.value = updated
+        }
+
         scope.launch(Dispatchers.IO) {
-            val newRead = !article.read
-            if (newRead) {
-                account.markRead(article.id)
-            } else {
-                account.markUnread(article.id)
-            }
-            _articles.value = _articles.value.map {
-                if (it.id == article.id) it.copy(read = newRead) else it
-            }
-            if (_selectedArticle.value?.id == article.id) {
-                _selectedArticle.value = article.copy(read = newRead)
+            try {
+                if (newRead) {
+                    account.markRead(article.id)
+                } else {
+                    account.markUnread(article.id)
+                }
+            } catch (e: Throwable) {
+                e.printStackTrace()
             }
         }
     }
 
     fun dislikeArticle(article: Article) {
         val account = _currentAccount.value ?: return
+        _articles.value = _articles.value.filter { it.id != article.id }
+        if (_selectedArticle.value?.id == article.id) {
+            _selectedArticle.value = _articles.value.firstOrNull()
+        }
         scope.launch(Dispatchers.IO) {
-            account.dislikeArticle(articleID = article.id, feedID = article.feedID, title = article.title)
-            _articles.value = _articles.value.filter { it.id != article.id }
-            if (_selectedArticle.value?.id == article.id) {
-                _selectedArticle.value = _articles.value.firstOrNull()
+            try {
+                account.dislikeArticle(articleID = article.id, feedID = article.feedID, title = article.title)
+            } catch (e: Throwable) {
+                e.printStackTrace()
             }
         }
     }
@@ -458,9 +513,17 @@ class DesktopAccountState(
         val unreadIDs = _articles.value.filter { !it.read }.map { it.id }
         if (unreadIDs.isEmpty()) return
 
+        _articles.value = _articles.value.map { it.copy(read = true) }
+        _selectedArticle.value = _selectedArticle.value?.copy(read = true)
+        explicitlyUnreadArticleIDs.clear()
+
         scope.launch(Dispatchers.IO) {
-            account.markAllRead(unreadIDs)
-            refreshArticles()
+            try {
+                account.markAllRead(unreadIDs)
+                refreshArticles()
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
         }
     }
 
