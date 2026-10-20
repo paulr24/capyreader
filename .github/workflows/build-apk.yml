@@ -29,7 +29,25 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Free Debug APK
-        run: ./gradlew assembleFreeDebug --no-daemon
+        run: |
+          ./gradlew assembleFreeDebug --no-daemon --stacktrace 2>&1 | tee build.log
+        shell: bash
+
+      - name: Summary on failure
+        if: failure()
+        run: |
+          echo "### Gradle Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -C 5 -E "ERROR|FAILURE|e: " build.log | tail -n 100 >> $GITHUB_STEP_SUMMARY || tail -n 100 build.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
 
       - name: Prepare APK for Release
         run: |

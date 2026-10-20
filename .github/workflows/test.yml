@@ -23,7 +23,17 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
       - name: Run tests
-        run: ./gradlew test --build-cache
+        run: |
+          ./gradlew test --build-cache --stacktrace 2>&1 | tee test.log
+        shell: bash
+      - name: Summary on failure
+        if: failure()
+        run: |
+          echo "### Tests Failed" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -C 5 -E "ERROR|FAILURE|e: " test.log | tail -n 100 >> $GITHUB_STEP_SUMMARY || tail -n 100 test.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        shell: bash
       - name: Compile gplay flavor
         if: github.event_name == 'push'
         run: ./gradlew :app:compileGplayDebugKotlin --build-cache
