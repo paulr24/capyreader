@@ -5,7 +5,6 @@ import app.cash.turbine.test
 import com.capyreader.app.notifications.NotificationHelper
 import com.capyreader.app.preferences.AppPreferences
 import com.capyreader.app.preferences.ArticleListVerticalSwipe
-import com.capyreader.app.preferences.MarkReadDelay
 import com.capyreader.app.refresher.RefreshInterval
 import com.capyreader.app.ui.articles.feeds.AngleRefreshState
 import com.jocmp.capy.Account
@@ -13,12 +12,12 @@ import com.jocmp.capy.ArticleFilter
 import com.jocmp.capy.ArticleStatus
 import com.jocmp.capy.Feed
 import com.jocmp.capy.Folder
-import com.jocmp.capy.Article
 import com.jocmp.capy.accounts.Source
+import com.jocmp.capy.articles.SortOrder
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import java.time.ZonedDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -108,6 +107,28 @@ class ArticleScreenViewModelTest {
 
         assertTrue(viewModel.refreshInitialized)
         assertFalse(viewModel.refreshingAll)
+    }
+
+    @Test
+    fun `shows onboarding for a local account without feeds`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.showOnboarding.test {
+            assertTrue(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `skips onboarding for a hosted account without feeds`() = runTest {
+        every { account.source } returns Source.FEEDBIN
+
+        val viewModel = buildViewModel()
+
+        viewModel.showOnboarding.test {
+            assertFalse(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
@@ -227,149 +248,73 @@ class ArticleScreenViewModelTest {
     }
 
     @Test
-    fun `selectArticle marks unread article as read immediately by default`() = runTest {
-        val article = createArticle(id = "1", read = false)
-        coEvery { account.findArticle("1") } returns article
+    fun `selectStatus updates the filter without waiting on preferences`() = runTest {
+        appPreferences.filter.set(ArticleFilter.Articles(articleStatus = ArticleStatus.STARRED))
 
         val viewModel = buildViewModel()
-        viewModel.selectArticle("1")
         advanceUntilIdle()
 
-        coVerify(exactly = 1) { account.markRead("1") }
-        assertEquals(true, viewModel.article?.read)
-    }
+        val starredList = viewModel.articleList.value
 
-    @Test
-    fun `selectArticle does not immediately mark unread article as read when delay configured`() = runTest {
-        appPreferences.readerOptions.markReadDelay.set(MarkReadDelay.SECONDS_5)
-        val article = createArticle(id = "1", read = false)
-        coEvery { account.findArticle("1") } returns article
+        viewModel.selectStatus(ArticleStatus.UNREAD)
 
-        val viewModel = buildViewModel()
-        viewModel.selectArticle("1")
+        val expected = ArticleFilter.Articles(articleStatus = ArticleStatus.UNREAD)
+        assertEquals(expected, viewModel.filter.value)
+        assertEquals(expected, appPreferences.filter.get())
 
-        testScheduler.advanceTimeBy(1000)
-        coVerify(exactly = 0) { account.markRead("1") }
-    }
-
-    @Test
-    fun `selectArticle marks unread article as read after 5 seconds when delay configured`() = runTest {
-        appPreferences.readerOptions.markReadDelay.set(MarkReadDelay.SECONDS_5)
-        val article = createArticle(id = "1", read = false)
-        coEvery { account.findArticle("1") } returns article
-
-        val viewModel = buildViewModel()
-        viewModel.selectArticle("1")
-
-        testScheduler.advanceTimeBy(4900)
-        coVerify(exactly = 0) { account.markRead("1") }
-
-        testScheduler.advanceTimeBy(200)
-        coVerify(exactly = 1) { account.markRead("1") }
-        assertEquals(true, viewModel.article?.read)
-    }
-
-    @Test
-    fun `selectArticle commits previous pending mark read when new article selected`() = runTest {
-        appPreferences.readerOptions.markReadDelay.set(MarkReadDelay.SECONDS_5)
-        val article1 = createArticle(id = "1", read = false)
-        val article2 = createArticle(id = "2", read = false)
-        coEvery { account.findArticle("1") } returns article1
-        coEvery { account.findArticle("2") } returns article2
-
-        val viewModel = buildViewModel()
-        viewModel.selectArticle("1")
-
-        testScheduler.advanceTimeBy(2000)
-        coVerify(exactly = 0) { account.markRead("1") }
-
-        viewModel.selectArticle("2")
         advanceUntilIdle()
 
-        coVerify(exactly = 1) { account.markRead("1") }
+        assertEquals(expected, viewModel.articleList.value.filter)
+        assertTrue(starredList !== viewModel.articleList.value)
     }
 
     @Test
-    fun `flushPendingMarkRead marks pending article as read immediately`() = runTest {
-        appPreferences.readerOptions.markReadDelay.set(MarkReadDelay.SECONDS_5)
-        val article = createArticle(id = "1", read = false)
-        coEvery { account.findArticle("1") } returns article
-
+    fun `applies filters persisted outside the view model`() = runTest {
         val viewModel = buildViewModel()
-        viewModel.selectArticle("1")
-
-        testScheduler.advanceTimeBy(1000)
-        viewModel.flushPendingMarkRead()
         advanceUntilIdle()
 
-        coVerify(exactly = 1) { account.markRead("1") }
-        assertEquals(true, viewModel.article?.read)
-    }
-
-    @Test
-    fun `clearArticle commits pending mark read`() = runTest {
-        appPreferences.readerOptions.markReadDelay.set(MarkReadDelay.SECONDS_5)
-        val article = createArticle(id = "1", read = false)
-        coEvery { account.findArticle("1") } returns article
-
-        val viewModel = buildViewModel()
-        viewModel.selectArticle("1")
-
-        testScheduler.advanceTimeBy(2000)
-        viewModel.clearArticle()
-        advanceUntilIdle()
-
-        coVerify(exactly = 1) { account.markRead("1") }
-    }
-
-    @Test
-    fun `selectArticle preserves read state when full content loads`() = runTest {
-        val article = createArticle(id = "1", read = false).copy(
-            enableStickyFullContent = true
+        val deepLinked = ArticleFilter.Feeds(
+            feedID = "1",
+            folderTitle = null,
+            feedStatus = ArticleStatus.UNREAD
         )
-        appPreferences.enableStickyFullContent.set(true)
-        coEvery { account.findArticle("1") } returns article
-        coEvery { account.fetchFullContent(any()) } returns Result.success("Full extracted body")
-
-        val viewModel = buildViewModel()
-        viewModel.selectArticle("1")
+        appPreferences.filter.set(deepLinked)
         advanceUntilIdle()
 
-        assertEquals(true, viewModel.article?.read)
-        assertEquals("Full extracted body", viewModel.article?.content)
+        assertEquals(deepLinked, viewModel.filter.value)
     }
 
     @Test
-    fun `selectArticle preserves read state when full content fails`() = runTest {
-        val article = createArticle(id = "1", read = false).copy(
-            enableStickyFullContent = true
-        )
-        appPreferences.enableStickyFullContent.set(true)
-        coEvery { account.findArticle("1") } returns article
-        coEvery { account.fetchFullContent(any()) } returns Result.failure(Exception("Failed to load"))
+    fun `markAllRead uses the sort order for the filter status`() = runTest {
+        appPreferences.articleListOptions.getSortOrder(ArticleStatus.UNREAD).set(SortOrder.OLDEST_FIRST)
+        val unread = ArticleFilter.Articles(articleStatus = ArticleStatus.UNREAD)
+        val starred = ArticleFilter.Articles(articleStatus = ArticleStatus.STARRED)
+        appPreferences.filter.set(unread)
 
         val viewModel = buildViewModel()
-        viewModel.selectArticle("1")
+
+        viewModel.markAllRead(filter = unread)
+        viewModel.markAllRead(filter = starred)
         advanceUntilIdle()
 
-        assertEquals(true, viewModel.article?.read)
-    }
-
-    private fun createArticle(id: String, read: Boolean = false): Article {
-        return Article(
-            id = id,
-            feedID = "feed-1",
-            title = "Test Article Title",
-            author = "Author",
-            contentHTML = "<p>content</p>",
-            url = null,
-            summary = "",
-            imageURL = null,
-            updatedAt = ZonedDateTime.now(),
-            publishedAt = ZonedDateTime.now(),
-            read = read,
-            starred = false,
-        )
+        verify {
+            account.unreadArticleIDs(
+                filter = unread,
+                range = any(),
+                sortOrder = SortOrder.OLDEST_FIRST,
+                query = any(),
+                since = any(),
+            )
+        }
+        verify {
+            account.unreadArticleIDs(
+                filter = starred,
+                range = any(),
+                sortOrder = SortOrder.NEWEST_FIRST,
+                query = any(),
+                since = any(),
+            )
+        }
     }
 
     private fun buildViewModel(
@@ -384,6 +329,7 @@ class ArticleScreenViewModelTest {
             notificationHelper = notificationHelper,
             ioDispatcher = testDispatcher,
             syncFlushInterval = syncFlushInterval,
+            articleCutoff = ArticleSessionCutoff(),
         )
     }
 }

@@ -76,6 +76,8 @@ class MediaPlaybackService : MediaSessionService() {
                 true
             )
             .setHandleAudioBecomingNoisy(true)
+            .setSeekBackIncrementMs(SkipCalculator.SKIP_DURATION_MS)
+            .setSeekForwardIncrementMs(SkipCalculator.SKIP_DURATION_MS)
             .build()
 
         exoPlayer.addListener(object : Player.Listener {

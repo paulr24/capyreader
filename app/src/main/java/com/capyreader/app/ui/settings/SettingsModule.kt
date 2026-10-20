@@ -42,7 +42,6 @@ val settingsModule = module {
     viewModel {
        SettingsViewModel(
            account = get(),
-           appPreferences = get(),
        )
     }
     viewModel {
