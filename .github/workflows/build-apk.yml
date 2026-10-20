@@ -34,25 +34,35 @@ jobs:
       - name: Prepare APK for Release
         run: |
           mkdir -p release-apk
-          cp app/build/outputs/apk/free/debug/*.apk release-apk/CapyReader-AI-Summary.apk
+          cp app/build/outputs/apk/free/debug/*.apk release-apk/CapyReader-2026.10.1247.apk
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ai-summary-latest
-          name: "Capy Reader with AI Summarization"
+          tag_name: v2026.10.1247
+          name: "Capy Reader v2026.10.1247 - Upstream Sync & AI Summary"
           body: |
-            ### Capy Reader with Gemini AI Summarization
+            ### Capy Reader v2026.10.1247
             
-            - **Default Model**: `gemini-3.5-flash-lite`
-            - **Features**:
-              - AI article summarization in the reader floating bar
-              - Instant caching (in-memory & disk)
-              - Multi-model & custom model selection
-              - Configurable prompt templates in Settings
+            Synchronized with upstream v2026.10.1213 while preserving all custom fork features:
+            - **Upstream Updates**:
+              - Native Compose Article Reader (`mallet` HTML linearizer) replacing WebView
+              - Jetpack Navigation 3 & shared-axis pane transitions
+              - Media3 mini audio controller
+              - Native video and YouTube inline playback
+              - Searchable settings registry
+              - E-Ink mode improvements, per-status sort orders, and latest dependency updates
+            - **Fork Custom Features**:
+              - Gemini AI article summarization & Q&A
+              - Similar article deduplication with priority rules and logs
+              - Thumbs down / article muting
+              - Feed Health & Statistics settings panel
+              - Mark as read delay settings
+              - Windows Desktop app (`CapyReader-1.0.1247.msi` / `.exe`)
             
             #### Download:
-            Download `CapyReader-AI-Summary.apk` below directly to your phone and install!
-          files: release-apk/CapyReader-AI-Summary.apk
+            - **Android APK**: `CapyReader-2026.10.1247.apk`
+            - **Windows Desktop**: `CapyReader-1.0.1247.msi` / `CapyReader-1.0.1247.exe`
+          files: release-apk/CapyReader-2026.10.1247.apk
           prerelease: false
           draft: false
