@@ -123,6 +123,7 @@ fun AISummaryCard(
                     onSuccess = { audioFile ->
                         onSelectAudio(
                             AudioEnclosure(
+                                articleID = article.id,
                                 url = Uri.fromFile(audioFile).toString(),
                                 title = title,
                                 feedName = article.title,

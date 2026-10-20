@@ -168,6 +168,9 @@ object SettingsRegistry {
             )
 
             SettingsPanel.Notifications,
+            SettingsPanel.AI,
+            SettingsPanel.FeedHealth,
+            SettingsPanel.SimilarArticles,
             SettingsPanel.About -> emptyList()
         }
     }
