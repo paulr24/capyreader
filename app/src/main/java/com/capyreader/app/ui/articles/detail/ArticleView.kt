@@ -1,4 +1,4 @@
-﻿package com.capyreader.app.ui.articles.detail
+package com.capyreader.app.ui.articles.detail
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -47,7 +47,7 @@ import com.capyreader.app.common.AudioEnclosure
 import com.capyreader.app.common.Media
 import com.capyreader.app.preferences.AppPreferences
 import com.capyreader.app.ui.articles.audio.AudioPlayerController
-import com.capyreader.app.ui.articles.audio.FloatingAudioPlayer
+import com.capyreader.app.ui.articles.audio.AudioMiniPlayer
 import com.capyreader.app.preferences.ArticleVerticalSwipe
 import com.capyreader.app.preferences.ArticleVerticalSwipe.AI_SUMMARIZE
 import com.capyreader.app.preferences.ArticleVerticalSwipe.DISABLED
@@ -282,15 +282,17 @@ fun ArticleView(
                 bottomPadding = if (audioEnclosure != null) 120.dp else ArticleBarDefaults.FloatingToolbarBottomGap,
             )
 
-            audioEnclosure?.let { audio ->
-                FloatingAudioPlayer(
-                    audio = audio,
-                    controller = audioController,
+            val audioPlayer by audioController.player.collectAsState()
+            if (audioEnclosure != null && audioPlayer != null) {
+                AudioMiniPlayer(
+                    player = audioPlayer!!,
+                    onClick = {},
                     onDismiss = {
                         audioController.dismiss()
                     },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        .padding(bottom = 80.dp)
                         .zIndex(2f),
                 )
             }
