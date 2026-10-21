@@ -46,10 +46,10 @@ jobs:
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2026.10.1248
-          name: "Capy Reader v2026.10.1248 - Max Articles & Deduplication Fix"
+          tag_name: v2026.10.1249
+          name: "Capy Reader v2026.10.1249 - Upstream v2026.10.1214 Sync"
           body: |
-            ### Capy Reader v2026.10.1248
+            ### Capy Reader v2026.10.1249
             
             Synchronized with upstream v2026.10.1213 while preserving all custom fork features:
             - **Upstream Updates**:
@@ -65,11 +65,11 @@ jobs:
               - Thumbs down / article muting
               - Feed Health & Statistics settings panel
               - Mark as read delay settings
-              - Windows Desktop app (`CapyReader-1.0.1248.msi` / `.exe`)
+              - Windows Desktop app (`CapyReader-1.0.1249.msi` / `.exe`)
             
             #### Download:
-            - **Android APK**: `CapyReader-2026.10.1248.apk`
-            - **Windows Desktop**: `CapyReader-1.0.1248.msi` / `CapyReader-1.0.1248.exe`
+            - **Android APK**: `CapyReader-2026.10.1249.apk`
+            - **Windows Desktop**: `CapyReader-1.0.1249.msi` / `CapyReader-1.0.1249.exe`
           files: release-desktop/*
           prerelease: false
           draft: false
