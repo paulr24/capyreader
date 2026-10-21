@@ -155,7 +155,7 @@ object SettingsRegistry {
             SettingsPanel.Advanced -> listOf(
                 SettingsSection(
                     title = R.string.settings_section_storage,
-                    settings = listOf(Setting.AUTO_DELETE, Setting.CLEAR_ARTICLES),
+                    settings = listOf(Setting.MAX_ARTICLES, Setting.AUTO_DELETE, Setting.CLEAR_ARTICLES),
                 ),
                 SettingsSection(
                     title = R.string.settings_section_privacy,
@@ -236,6 +236,7 @@ object SettingsRegistry {
             Setting.THEME -> R.string.theme_menu_label
             Setting.PURE_BLACK -> R.string.settings_pure_black_dark_mode
             Setting.ACCENT_COLORS -> R.string.settings_accent_colors
+            Setting.MAX_ARTICLES -> R.string.settings_max_unread_articles_title
             Setting.AUTO_DELETE -> R.string.settings_auto_delete_articles_title
             Setting.CLEAR_ARTICLES -> R.string.settings_clear_all_articles_button
             Setting.CRASH_REPORTING -> R.string.crash_reporting_checkbox_title
@@ -282,6 +283,13 @@ object SettingsRegistry {
             Setting.TAP_TO_PAGE -> listOf(R.string.settings_e_ink_tap_to_page_subtitle)
             Setting.E_INK_SCROLLBAR -> listOf(R.string.settings_e_ink_scrollbar_subtitle)
             Setting.PAGE_TURN_KEYS -> listOf(R.string.settings_e_ink_page_turn_keys_subtitle)
+            Setting.MAX_ARTICLES -> listOf(
+                R.string.settings_max_unread_articles_2500,
+                R.string.settings_max_unread_articles_5000,
+                R.string.settings_max_unread_articles_10000,
+                R.string.settings_max_unread_articles_25000,
+                R.string.settings_max_unread_articles_unlimited,
+            )
             Setting.AUTO_DELETE -> listOf(R.string.settings_option_auto_delete_articles_title)
             Setting.FILTERS -> listOf(R.string.filters_supporting_text)
             Setting.UNREAD_BADGES -> listOf(

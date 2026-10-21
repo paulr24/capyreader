@@ -18,6 +18,14 @@ import com.capyreader.app.ui.settings.CrashReportingCheckbox
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
+fun MaxArticlesRow(viewModel: GeneralSettingsViewModel = koinViewModel()) {
+    MaxArticlesMenu(
+        updateMaxArticles = viewModel::updateMaxArticles,
+        maxArticles = viewModel.maxArticles,
+    )
+}
+
+@Composable
 fun AutoDeleteRow(viewModel: GeneralSettingsViewModel = koinViewModel()) {
     AutoDeleteMenu(
         updateAutoDelete = viewModel::updateAutoDelete,

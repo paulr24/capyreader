@@ -50,6 +50,7 @@ enum class Setting {
     E_INK_SCROLLBAR,
     PAGE_TURN_KEYS,
 
+    MAX_ARTICLES,
     AUTO_DELETE,
     CLEAR_ARTICLES,
     CRASH_REPORTING,

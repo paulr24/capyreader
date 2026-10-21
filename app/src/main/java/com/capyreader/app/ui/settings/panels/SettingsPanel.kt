@@ -82,6 +82,7 @@ sealed class SettingsPanel(@StringRes val title: Int) {
                 Display,
                 AI,
                 FeedHealth,
+                SimilarArticles,
                 Notifications,
                 Advanced,
                 About,

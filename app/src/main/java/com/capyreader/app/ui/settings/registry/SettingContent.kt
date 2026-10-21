@@ -25,6 +25,7 @@ import com.capyreader.app.ui.settings.panels.ListSwipeUpRow
 import com.capyreader.app.ui.settings.panels.MarkAllReadPositionRow
 import com.capyreader.app.ui.settings.panels.MarkReadDelayRow
 import com.capyreader.app.ui.settings.panels.MarkReadOnScrollRow
+import com.capyreader.app.ui.settings.panels.MaxArticlesRow
 import com.capyreader.app.ui.settings.panels.OPMLExportRow
 import com.capyreader.app.ui.settings.panels.OPMLImportRow
 import com.capyreader.app.ui.settings.panels.PageTurnKeysRow
@@ -101,6 +102,7 @@ fun SettingContent(
         Setting.TAP_TO_PAGE -> TapToPageRow()
         Setting.E_INK_SCROLLBAR -> EInkScrollbarRow()
         Setting.PAGE_TURN_KEYS -> PageTurnKeysRow()
+        Setting.MAX_ARTICLES -> MaxArticlesRow()
         Setting.AUTO_DELETE -> AutoDeleteRow()
         Setting.CLEAR_ARTICLES -> ClearArticlesRow()
         Setting.CRASH_REPORTING -> CrashReportingRow()
