@@ -438,8 +438,14 @@ private fun AssistantMessageItem(
     isStreaming: Boolean = false,
     onCopied: (String) -> Unit = {},
 ) {
-    val formattedText = remember(message.text) {
-        MarkdownFormatter.parseMarkdown(message.text)
+    val linkColor = MaterialTheme.colorScheme.primary
+    val codeBackground = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val formattedText = remember(message.text, linkColor, codeBackground) {
+        MarkdownFormatter.parseMarkdown(
+            message.text,
+            linkColor = linkColor,
+            codeBackground = codeBackground,
+        )
     }
     val copyToClipboard = buildCopyToClipboard(formattedText.text)
     val copiedMessage = stringResource(R.string.ai_chat_copied)

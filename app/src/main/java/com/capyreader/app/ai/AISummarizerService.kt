@@ -219,7 +219,7 @@ class AISummarizerService(
         val contentsArray = JSONArray()
 
         if (history.isEmpty()) {
-            val prompt = "You are a helpful reading assistant answering questions about the following article.\n\nArticle Title: $articleTitle\n\nArticle Content:\n$articleContent\n\nQuestion: $question\n\nPlease answer accurately, clearly, and concisely based strictly on the article's text. If the answer is not mentioned in the article, state that clearly."
+            val prompt = "You are a helpful reading assistant answering questions about the following article.\n\nArticle Title: $articleTitle\n\nArticle Content:\n$articleContent\n\nQuestion: $question\n\nPlease answer accurately, clearly, and concisely based strictly on the article's text. If the answer is not mentioned in the article, state that clearly. Use clean Markdown formatting with bold (**keyword**) for key terms and concepts."
             contentsArray.put(JSONObject().apply {
                 put("role", "user")
                 put("parts", JSONArray().apply {
@@ -229,7 +229,7 @@ class AISummarizerService(
         } else {
             history.forEachIndexed { index, msg ->
                 val text = if (index == 0) {
-                    "You are a helpful reading assistant answering questions about the following article.\n\nArticle Title: $articleTitle\n\nArticle Content:\n$articleContent\n\nQuestion: ${msg.text}\n\nPlease answer accurately, clearly, and concisely based strictly on the article's text. If the answer is not mentioned in the article, state that clearly."
+                    "You are a helpful reading assistant answering questions about the following article.\n\nArticle Title: $articleTitle\n\nArticle Content:\n$articleContent\n\nQuestion: ${msg.text}\n\nPlease answer accurately, clearly, and concisely based strictly on the article's text. If the answer is not mentioned in the article, state that clearly. Use clean Markdown formatting with bold (**keyword**) for key terms and concepts."
                 } else {
                     msg.text
                 }
@@ -352,7 +352,7 @@ class AISummarizerService(
         val messagesArray = JSONArray().apply {
             put(JSONObject().apply {
                 put("role", "system")
-                put("content", "You are a helpful reading assistant answering questions about the following article.\n\nArticle Title: $articleTitle\n\nArticle Content:\n$articleContent\n\nPlease answer accurately, clearly, and concisely based strictly on the article's text. If the answer is not mentioned in the article, state that clearly.")
+                put("content", "You are a helpful reading assistant answering questions about the following article.\n\nArticle Title: $articleTitle\n\nArticle Content:\n$articleContent\n\nPlease answer accurately, clearly, and concisely based strictly on the article's text. If the answer is not mentioned in the article, state that clearly. Use clean Markdown formatting with bold (**keyword**) for key terms and concepts.")
             })
             history.forEach { msg ->
                 put(JSONObject().apply {

@@ -344,9 +344,15 @@ fun DesktopAISummaryCard(
                         }
 
                         !summaryText.isNullOrBlank() -> {
+                            val linkColor = MaterialTheme.colorScheme.primary
+                            val codeBackground = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                             SelectionContainer {
                                 Text(
-                                    text = DesktopMarkdownFormatter.parseMarkdown(summaryText!!),
+                                    text = DesktopMarkdownFormatter.parseMarkdown(
+                                        summaryText!!,
+                                        linkColor = linkColor,
+                                        codeBackground = codeBackground,
+                                    ),
                                     style = MaterialTheme.typography.bodyMedium,
                                     lineHeight = 22.sp,
                                     color = MaterialTheme.colorScheme.onSurface

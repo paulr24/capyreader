@@ -92,7 +92,7 @@ object OpenAIVoices {
 }
 
 const val DEFAULT_AI_PROMPT_TEMPLATE =
-    "Summarize the following article concisely. Provide a 2-3 sentence overview followed by 3-5 bullet points highlighting the main takeaways.\n\nTitle: %title%\n\n%content%"
+    "Summarize the following article concisely. Provide a 2-3 sentence overview followed by 3-5 bullet points highlighting the main takeaways. Use bold (**keyword**) for key terms and takeaways. Avoid raw unformatted asterisks.\n\nTitle: %title%\n\n%content%"
 
 class AIOptions(private val preferenceStore: PreferenceStore) {
     val enabled: Preference<Boolean>

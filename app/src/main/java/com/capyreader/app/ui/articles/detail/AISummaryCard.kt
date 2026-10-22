@@ -413,8 +413,14 @@ fun AISummaryCard(
 
                         !summaryText.isNullOrBlank() -> {
                             val rawText = summaryText.orEmpty()
-                            val formattedText = remember(rawText) {
-                                MarkdownFormatter.parseMarkdown(rawText)
+                            val linkColor = MaterialTheme.colorScheme.primary
+                            val codeBackground = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            val formattedText = remember(rawText, linkColor, codeBackground) {
+                                MarkdownFormatter.parseMarkdown(
+                                    rawText,
+                                    linkColor = linkColor,
+                                    codeBackground = codeBackground,
+                                )
                             }
                             val copyToClipboard = buildCopyToClipboard(formattedText.text)
                             val copiedMessage = stringResource(R.string.ai_summary_copied)
