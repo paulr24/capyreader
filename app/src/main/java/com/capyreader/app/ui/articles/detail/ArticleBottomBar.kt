@@ -87,7 +87,12 @@ fun ArticleBottomBar(
                     positioning = TooltipAnchorPosition.Above,
                     message = stringResource(R.string.article_view_mark_as_read)
                 ) {
-                    IconButton(onClick = { onToggleRead() }) {
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onToggleRead()
+                        }
+                    ) {
                         Icon(
                             if (article.read) Icons.Outlined.FiberManualRecord else Icons.Rounded.FiberManualRecord,
                             contentDescription = stringResource(R.string.article_view_mark_as_read),
@@ -99,7 +104,12 @@ fun ArticleBottomBar(
                     positioning = TooltipAnchorPosition.Above,
                     message = stringResource(R.string.article_view_star)
                 ) {
-                    IconButton(onClick = { onToggleStar() }) {
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onToggleStar()
+                        }
+                    ) {
                         Icon(
                             if (article.starred) Icons.Rounded.Star else Icons.Rounded.StarOutline,
                             contentDescription = stringResource(R.string.article_view_star),
@@ -146,7 +156,12 @@ fun ArticleBottomBar(
                     positioning = TooltipAnchorPosition.Above,
                     message = stringResource(R.string.extract_full_content)
                 ) {
-                    IconButton(onClick = { onToggleExtractContent() }) {
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onToggleExtractContent()
+                        }
+                    ) {
                         if (article.fullContent == LOADING) {
                             FullContentLoadingIcon()
                         } else {
@@ -162,7 +177,12 @@ fun ArticleBottomBar(
                     positioning = TooltipAnchorPosition.Above,
                     message = stringResource(R.string.article_action_summarize)
                 ) {
-                    IconButton(onClick = { onSummarize() }) {
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onSummarize()
+                        }
+                    ) {
                         Icon(
                             Icons.Rounded.AutoAwesome,
                             contentDescription = stringResource(R.string.article_action_summarize),
@@ -174,7 +194,12 @@ fun ArticleBottomBar(
                     positioning = TooltipAnchorPosition.Above,
                     message = stringResource(R.string.article_share)
                 ) {
-                    IconButton(onClick = { context.shareArticle(article = article) }) {
+                    IconButton(
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            context.shareArticle(article = article)
+                        }
+                    ) {
                         Icon(
                             Icons.Rounded.Share,
                             contentDescription = stringResource(R.string.article_share),

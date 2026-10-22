@@ -1,5 +1,6 @@
 package com.capyreader.app.ui.articles
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -56,6 +58,7 @@ private fun StatusButton(
     selected: Boolean,
     onSelect: () -> Unit,
 ) {
+    val view = LocalView.current
     val label = stringResource(status.navigationTitle)
     val colors = MaterialTheme.colorScheme
 
@@ -75,7 +78,10 @@ private fun StatusButton(
     )
 
     Surface(
-        onClick = onSelect,
+        onClick = {
+            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            onSelect()
+        },
         selected = selected,
         shape = CircleShape,
         color = containerColor,

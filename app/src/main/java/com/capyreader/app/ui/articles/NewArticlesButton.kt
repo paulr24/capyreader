@@ -1,5 +1,6 @@
 package com.capyreader.app.ui.articles
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
@@ -13,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import com.capyreader.app.R
@@ -22,10 +24,14 @@ import com.capyreader.app.ui.theme.CapyTheme
 fun NewArticlesButton(
     onClick: () -> Unit,
 ) {
+    val view = LocalView.current
     val height = ButtonDefaults.ExtraSmallContainerHeight
 
     ElevatedButton(
-        onClick = onClick,
+        onClick = {
+            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            onClick()
+        },
         modifier = Modifier.heightIn(min = height),
         shape = ButtonDefaults.shapesFor(height).shape,
         colors = ButtonDefaults.elevatedButtonColors(

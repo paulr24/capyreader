@@ -1,5 +1,6 @@
 package com.capyreader.app.ui.articles.audio
 
+import android.view.HapticFeedbackConstants
 import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -18,6 +19,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
@@ -35,6 +37,7 @@ fun AudioMiniPlayer(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val view = LocalView.current
     val context = LocalContext.current
     val bitmapLoader = remember(context) {
         CoilBitmapLoader(context.applicationContext)
@@ -49,12 +52,20 @@ fun AudioMiniPlayer(
         player = player,
         bitmapLoader = bitmapLoader,
         defaultArtwork = defaultArtwork,
-        onClick = onClick,
+        onClick = {
+            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            onClick()
+        },
         modifier = modifier.padding(horizontal = 8.dp),
         playerControls = { player ->
             SeekBackButton(player = player)
             PlayPauseButton(player = player)
-            IconButton(onClick = onDismiss) {
+            IconButton(
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onDismiss()
+                }
+            ) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = stringResource(R.string.audio_player_close),

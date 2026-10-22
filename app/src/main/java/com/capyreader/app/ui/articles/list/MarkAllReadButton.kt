@@ -1,5 +1,6 @@
 package com.capyreader.app.ui.articles.list
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.rounded.Check
@@ -9,18 +10,23 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import com.capyreader.app.R
 import com.capyreader.app.ui.LocalUnreadCount
 
 @Composable
 fun MarkAllReadButton() {
+    val view = LocalView.current
     val unreadCount = LocalUnreadCount.current
     val requestMarkAllRead = LocalMarkAllRead.current
 
     IconButton(
         enabled = unreadCount > 0,
-        onClick = { requestMarkAllRead() }
+        onClick = {
+            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            requestMarkAllRead()
+        }
     ) {
         Icon(
             imageVector = Icons.Filled.CheckCircle,
@@ -32,10 +38,14 @@ fun MarkAllReadButton() {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MarkAllReadFloatingActionButton(modifier: Modifier = Modifier) {
+    val view = LocalView.current
     val requestMarkAllRead = LocalMarkAllRead.current
 
     FloatingToolbarDefaults.StandardFloatingActionButton(
-        onClick = { requestMarkAllRead() },
+        onClick = {
+            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            requestMarkAllRead()
+        },
         modifier = modifier,
     ) {
         Icon(
