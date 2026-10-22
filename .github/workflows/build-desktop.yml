@@ -46,13 +46,17 @@ jobs:
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2026.10.1250
-          name: "Capy Reader v2026.10.1250 - Haptic Feedback for Toolbar Pills"
+          tag_name: v2026.10.1251
+          name: "Capy Reader v2026.10.1251 - AI Summary Formatting & Haptic Feedback"
           body: |
-            ### Capy Reader v2026.10.1250
+            ### Capy Reader v2026.10.1251
             
+            - **AI Summary Formatting**:
+              - Emphasized terms (`*word*` and `**word**`) now render in bold for prominent, clean takeaways without raw asterisks.
+              - Full support for bold-italic (`***word***`), numbered lists, proportional headers, markdown links, blockquotes, and code styling.
+              - Enhanced summarization prompts and audio TTS markdown cleaning.
             - **Haptic Feedback**:
-              - Added pleasant, subtle haptic tap feedback across all interactive icons in floating pill toolbars (Article bottom bar, feed status filter bar, mark-all-read buttons, new articles pill, and audio mini player).
+              - Pleasant, subtle haptic tap feedback across all interactive icons in floating pill toolbars (Article bottom bar, feed status filter bar, mark-all-read buttons, new articles pill, and audio mini player).
             - **Upstream Sync**:
               - Synchronized with upstream v2026.10.1214.
             - **Fork Custom Features**:
@@ -61,11 +65,11 @@ jobs:
               - Thumbs down / article muting
               - Feed Health & Statistics settings panel
               - Mark as read delay settings
-              - Windows Desktop app (`CapyReader-1.0.1250.msi` / `.exe`)
+              - Windows Desktop app (`CapyReader-1.0.1251.msi` / `.exe`)
             
             #### Download:
-            - **Android APK**: `CapyReader-2026.10.1250.apk`
-            - **Windows Desktop**: `CapyReader-1.0.1250.msi` / `CapyReader-1.0.1250.exe`
+            - **Android APK**: `CapyReader-2026.10.1251.apk`
+            - **Windows Desktop**: `CapyReader-1.0.1251.msi` / `CapyReader-1.0.1251.exe`
           files: release-desktop/*
           prerelease: false
           draft: false
