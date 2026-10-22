@@ -52,35 +52,31 @@ jobs:
       - name: Prepare APK for Release
         run: |
           mkdir -p release-apk
-          cp app/build/outputs/apk/free/debug/*.apk release-apk/CapyReader-2026.10.1249.apk
+          cp app/build/outputs/apk/free/debug/*.apk release-apk/CapyReader-2026.10.1250.apk
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2026.10.1249
-          name: "Capy Reader v2026.10.1249 - Upstream v2026.10.1214 Sync"
+          tag_name: v2026.10.1250
+          name: "Capy Reader v2026.10.1250 - Haptic Feedback for Toolbar Pills"
           body: |
-            ### Capy Reader v2026.10.1249
+            ### Capy Reader v2026.10.1250
             
-            Synchronized with upstream v2026.10.1213 while preserving all custom fork features:
-            - **Upstream Updates**:
-              - Native Compose Article Reader (`mallet` HTML linearizer) replacing WebView
-              - Jetpack Navigation 3 & shared-axis pane transitions
-              - Media3 mini audio controller
-              - Native video and YouTube inline playback
-              - Searchable settings registry
-              - E-Ink mode improvements, per-status sort orders, and latest dependency updates
+            - **Haptic Feedback**:
+              - Added pleasant, subtle haptic tap feedback across all interactive icons in floating pill toolbars (Article bottom bar, feed status filter bar, mark-all-read buttons, new articles pill, and audio mini player).
+            - **Upstream Sync**:
+              - Synchronized with upstream v2026.10.1214.
             - **Fork Custom Features**:
               - Gemini AI article summarization & Q&A
               - Similar article deduplication with priority rules and logs
               - Thumbs down / article muting
               - Feed Health & Statistics settings panel
               - Mark as read delay settings
-              - Windows Desktop app (`CapyReader-1.0.1249.msi` / `.exe`)
+              - Windows Desktop app (`CapyReader-1.0.1250.msi` / `.exe`)
             
             #### Download:
-            - **Android APK**: `CapyReader-2026.10.1249.apk`
-            - **Windows Desktop**: `CapyReader-1.0.1249.msi` / `CapyReader-1.0.1249.exe`
-          files: release-apk/CapyReader-2026.10.1249.apk
+            - **Android APK**: `CapyReader-2026.10.1250.apk`
+            - **Windows Desktop**: `CapyReader-1.0.1250.msi` / `CapyReader-1.0.1250.exe`
+          files: release-apk/CapyReader-2026.10.1250.apk
           prerelease: false
           draft: false
